@@ -1,0 +1,2 @@
+# nudzie
+Desktop reminder app
