@@ -18,9 +18,10 @@ mac:
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
-  # Notarization is enabled automatically when Apple credentials are present
-  # in the environment (APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID).
-  notarize: true
+  # Notarization/signing require Apple Developer credentials. Left off so CI can
+  # produce an unsigned build (users see a one-time Gatekeeper prompt). Flip to
+  # true once APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID are set.
+  notarize: false
   artifactName: ${productName}.${ext}
   target:
     - target: dmg
@@ -30,10 +31,13 @@ mac:
       arch: [universal]
 
 win:
-  icon: build/icon.png
+  icon: build/icon-win.png
+  # Stable filename so the site can link .../releases/latest/download/Nudzie-Setup.exe
+  artifactName: ${productName}-Setup.${ext}
+  # Single x64 installer — runs natively on x64 and via emulation on ARM Windows.
   target:
     - target: nsis
-      arch: [x64, arm64]
+      arch: [x64]
 
 nsis:
   oneClick: false
@@ -48,8 +52,9 @@ dmg:
     - { x: 150, y: 175, type: file }
     - { x: 450, y: 175, type: link, path: /Applications }
 
-# Auto-update feed (electron-updater). Adjust owner/repo before publishing.
+# Release + auto-update feed. Binaries are published to the PUBLIC releases repo
+# so downloads work without exposing the private source repo.
 publish:
   provider: github
-  owner: your-org
-  repo: nudzie
+  owner: mehulsethia
+  repo: nudzie-releases
