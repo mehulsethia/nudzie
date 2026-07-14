@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws: wss:;"
+    />
+    <title>Nudzie</title>
+    <link rel="stylesheet" href="./overlay.css" />
+  </head>
+  <body>
+    <div id="stage">
+      <div id="confetti"></div>
+
+      <div id="bubble" class="hidden">
+        <p id="bubble-text"></p>
+        <div id="buttons">
+          <button id="accept-btn" class="btn btn-yes">Got it</button>
+          <button id="snooze-btn" class="btn btn-snooze">Snooze</button>
+        </div>
+        <div id="bubble-tail"></div>
+      </div>
+
+      <div id="pet" class="offstage">
+        <img id="sprite-idle" src="./characters/buddy/idle.png" alt="" draggable="false" />
+        <img id="sprite-action" class="hidden" src="./characters/buddy/action.png" alt="" draggable="false" />
+      </div>
+    </div>
+    <script type="module" src="./overlay.ts"></script>
+  </body>
+</html>

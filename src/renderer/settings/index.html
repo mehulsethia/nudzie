@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws: wss:;"
+    />
+    <title>Nudzie</title>
+    <link rel="stylesheet" href="./settings.css" />
+  </head>
+  <body>
+    <div id="app">
+      <nav id="nav">
+        <div class="brand">Nudzie <span id="plan-badge" class="badge free">Free</span></div>
+        <button class="nav-item active" data-tab="general">General</button>
+        <button class="nav-item" data-tab="interval">Personal reminders</button>
+        <button class="nav-item" data-tab="calendar">Calendars</button>
+        <button class="nav-item" data-tab="character">Character</button>
+        <button class="nav-item" data-tab="pro">Pro</button>
+        <div class="nav-foot">
+          <button id="side-test-btn" class="btn btn-outline btn-block">Trigger a test reminder</button>
+        </div>
+      </nav>
+
+      <main id="content">
+        <!-- ---------------- General ---------------- -->
+        <section class="panel active" data-panel="general">
+          <h2>Calendar reminders</h2>
+          <p class="muted">How and when Nudzie nudges you before meetings.</p>
+
+          <label class="field">
+            <span>Lead time (minutes before a meeting)</span>
+            <input id="lead" type="number" min="0" max="120" />
+          </label>
+
+          <label class="field">
+            <span>Message template</span>
+            <input id="template" type="text" />
+          </label>
+          <div class="tags">
+            <button class="tag-btn" data-token="{title}">Insert {title}</button>
+            <button class="tag-btn" data-token="{minutes}">Insert {minutes}</button>
+          </div>
+
+          <label class="check"><input id="remindAtStart" type="checkbox" /> Also nudge at the meeting's start time</label>
+          <label class="check"><input id="sound" type="checkbox" /> Play a sound</label>
+          <label class="check"><input id="login" type="checkbox" /> Launch at login <span class="muted small">(applies to installed builds)</span></label>
+          <label class="check"><input id="dockIcon" type="checkbox" /> Show in Dock <span class="muted small">(macOS — uncheck for menu-bar only)</span></label>
+          <label class="check"><input id="stay" type="checkbox" /> Stay signed in to calendars</label>
+
+          <label class="field">
+            <span>Show the character on</span>
+            <select id="display">
+              <option value="cursor">Display with the cursor</option>
+              <option value="primary">Primary display</option>
+            </select>
+          </label>
+
+          <div class="row">
+            <button id="test-btn" class="btn btn-primary">Trigger a test reminder</button>
+            <button id="now-btn" class="btn btn-outline">Remind me now</button>
+          </div>
+        </section>
+
+        <!-- ---------------- Personal / interval ---------------- -->
+        <section class="panel" data-panel="interval">
+          <h2>Personal reminders</h2>
+          <p class="muted">Interval nudges for things like water and breaks — independent of your calendar. Active hours use your computer's local time.</p>
+
+          <label class="check"><input id="intervalEnabled" type="checkbox" /> Enable personal reminders</label>
+
+          <label class="field">
+            <span>Message</span>
+            <input id="intervalMessage" type="text" />
+          </label>
+
+          <div class="grid2">
+            <label class="field"><span>Active from (hour, 0–23)</span><input id="activeStart" type="number" min="0" max="23" /></label>
+            <label class="field"><span>Active until (hour, 0–23)</span><input id="activeEnd" type="number" min="0" max="23" /></label>
+            <label class="field"><span>Every (minutes)</span><input id="intervalMinutes" type="number" min="1" max="600" /></label>
+            <label class="field"><span>Snooze length (minutes, max 59)</span><input id="snoozeMinutes" type="number" min="1" max="59" /></label>
+          </div>
+          <p id="interval-error" class="error hidden"></p>
+
+          <hr class="divider" />
+          <h3>Scheduled reminders</h3>
+          <p class="muted small">One-off or recurring nudges at specific times — e.g. meds at 9 AM, a bill on the 1st, a birthday every year.</p>
+
+          <ul id="scheduled-list" class="sched-list"></ul>
+
+          <div class="cal-provider">
+            <strong>Add a scheduled reminder</strong>
+            <label class="field"><span>Title</span><input id="sch-title" type="text" placeholder="Take medicine" /></label>
+            <label class="field"><span>Message (optional)</span><input id="sch-message" type="text" placeholder="Time for your meds 💊" /></label>
+            <div class="grid2">
+              <label class="field"><span>Repeat</span>
+                <select id="sch-type">
+                  <option value="once">Once</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="yearly">Yearly</option>
+                </select>
+              </label>
+              <label class="field"><span>Time</span><input id="sch-time" type="time" value="09:00" /></label>
+            </div>
+            <label class="field hidden" id="sch-once-row"><span>Date</span><input id="sch-date" type="date" /></label>
+            <div class="field hidden" id="sch-weekly-row">
+              <span>Days</span>
+              <div id="sch-days" class="days-row"></div>
+            </div>
+            <label class="field hidden" id="sch-monthly-row"><span>Day of month (1–31)</span><input id="sch-dom" type="number" min="1" max="31" value="1" /></label>
+            <div class="grid2 hidden" id="sch-yearly-row">
+              <label class="field"><span>Month</span><select id="sch-month"></select></label>
+              <label class="field"><span>Day</span><input id="sch-yday" type="number" min="1" max="31" value="1" /></label>
+            </div>
+            <div class="row"><button id="sch-add" class="btn btn-primary">Add reminder</button></div>
+            <p id="sch-error" class="error hidden"></p>
+          </div>
+        </section>
+
+        <!-- ---------------- Calendars ---------------- -->
+        <section class="panel" data-panel="calendar">
+          <h2>Calendar</h2>
+          <p class="muted">Read on this device only — never sent anywhere.</p>
+
+          <!-- Provider picker -->
+          <div id="cal-picker">
+            <button id="cal-free-note" class="cal-note hidden">
+              You're on the free plan — one calendar only. <b>Go Pro</b> to add more.
+            </button>
+
+            <div class="provider-list">
+              <button class="provider-btn" data-go="ical">
+                <span class="provider-meta">
+                  <span class="provider-name">Add by link <span class="reco">easiest</span></span>
+                  <span id="pick-ical-status" class="provider-state">Not connected</span>
+                </span>
+                <span class="chev">›</span>
+              </button>
+
+              <button class="provider-btn" data-go="icloud">
+                <span class="provider-meta">
+                  <span class="provider-name">Apple iCloud</span>
+                  <span id="pick-icloud-status" class="provider-state">Not connected</span>
+                </span>
+                <span class="chev">›</span>
+              </button>
+
+              <button class="provider-btn" data-go="google">
+                <span class="provider-meta">
+                  <span class="provider-name">Google Calendar</span>
+                  <span id="pick-google-status" class="provider-state">Not connected</span>
+                </span>
+                <span class="chev">›</span>
+              </button>
+            </div>
+
+            <div class="next-up">
+              <div class="cal-head">
+                <strong>⏱ Next up</strong>
+                <button id="upcoming-refresh" class="btn btn-outline btn-sm">Refresh</button>
+              </div>
+              <ul id="upcoming" class="upcoming"></ul>
+            </div>
+
+            <p class="privacy">🔒 Everything stays on this device. Nudzie has no server.</p>
+          </div>
+
+          <!-- iCal-link wizard -->
+          <div id="wiz-ical" class="hidden">
+            <button class="back-btn" data-back>‹ Back</button>
+            <h3>Add a calendar by link</h3>
+            <div class="cal-provider">
+              <strong>Paste a calendar link (iCal / .ics)</strong>
+              <ol class="steps-list">
+                <li>Google Calendar (web): your calendar → <b>Settings and sharing</b> → <b>Integrate calendar</b> → copy <b>Secret address in iCal format</b>.</li>
+                <li>Outlook / Fastmail / others: look for <b>Publish</b> or an <b>iCal/ICS</b> link.</li>
+                <li>Paste it below — add as many calendars as you like.</li>
+              </ol>
+              <label class="field"><span>Calendar link</span><input id="ical-url" type="text" placeholder="https://…/basic.ics  (or webcal://…)" /></label>
+              <label class="field"><span>Name (optional)</span><input id="ical-name" type="text" placeholder="Work" /></label>
+              <div class="row"><button id="ical-add" class="btn btn-primary">Add calendar</button></div>
+              <p id="ical-error" class="error hidden"></p>
+            </div>
+            <div class="cal-provider">
+              <strong>Your calendar links</strong>
+              <ul id="ical-feeds" class="feeds"></ul>
+            </div>
+          </div>
+
+          <!-- iCloud wizard -->
+          <div id="wiz-icloud" class="hidden">
+            <button class="back-btn" data-back>‹ Back</button>
+            <h3>Connect Apple iCloud</h3>
+            <div id="icloud-form" class="cal-provider">
+              <strong>Connect with an app-specific password</strong>
+              <ol class="steps-list">
+                <li>Open <a href="https://appleid.apple.com" target="_blank" rel="noopener">appleid.apple.com</a> → Sign-In &amp; Security → <b>App-Specific Passwords</b> → generate one.</li>
+                <li>Enter your Apple ID and that password below.</li>
+              </ol>
+              <label class="field"><span>Apple ID</span><input id="i-user" type="email" placeholder="you@icloud.com" autocomplete="off" /></label>
+              <label class="field"><span>App-specific password</span><input id="i-pass" type="password" placeholder="xxxx-xxxx-xxxx-xxxx" autocomplete="off" /></label>
+              <div class="row"><button id="i-connect" class="btn btn-primary">Connect</button></div>
+              <p id="i-error" class="error hidden"></p>
+            </div>
+            <div id="icloud-connected" class="cal-provider hidden">
+              <p class="ok">✅ Connected · <span id="i-detail"></span></p>
+              <button id="i-disconnect" class="btn btn-outline">Disconnect</button>
+            </div>
+          </div>
+
+          <!-- Google wizard -->
+          <div id="wiz-google" class="hidden">
+            <button class="back-btn" data-back>‹ Back</button>
+            <h3>Connect Google Calendar</h3>
+            <div class="cal-provider">
+              <strong>Sign in with Google</strong>
+              <p class="muted small">Reads your <b>primary</b> Google calendar, on this device only. Requires OAuth credentials — add <code>oauth-credentials.json</code> (see README) before connecting.</p>
+              <div class="row">
+                <button id="g-connect" class="btn btn-primary">Connect Google</button>
+                <button id="g-disconnect" class="btn btn-outline hidden">Disconnect</button>
+              </div>
+              <p id="g-error" class="error hidden"></p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ---------------- Character ---------------- -->
+        <section class="panel" data-panel="character">
+          <h2>Character</h2>
+          <p class="muted">Who walks in to nudge you. Extra characters are a Pro perk.</p>
+          <div id="characters" class="tiles"></div>
+
+          <div id="custom-wrap">
+            <h3 style="margin-top:22px">Make your own <span id="custom-pro-tag" class="badge pro hidden">PRO</span></h3>
+            <p id="custom-locked" class="muted hidden">
+              Custom characters are a Pro feature. <a href="#" id="custom-upsell">Upgrade →</a>
+            </p>
+
+            <div id="custom-panel">
+              <details class="recipe">
+                <summary>🎨 How to make your character (AI image-prompt recipe)</summary>
+                <div class="recipe-body">
+                  <p>Generate <strong>two images of the same character</strong> on a plain pale-blue
+                     background, full body with empty space around them. Make the idle pose first,
+                     then the action pose <em>in the same chat</em> so the tool matches the character.</p>
+                  <ol>
+                    <li>
+                      <strong>Idle pose</strong> — standing, holding a water bottle.
+                      <button class="btn btn-outline btn-sm" id="copy-idle-prompt">Copy prompt</button>
+                    </li>
+                    <li>
+                      <strong>Action pose</strong> — drinking from the bottle.
+                      <button class="btn btn-outline btn-sm" id="copy-action-prompt">Copy prompt</button>
+                    </li>
+                  </ol>
+                  <p class="muted small">3 rules: plain solid background (Nudzie cuts it out) · full body
+                     centered with empty space · same character in both images.</p>
+                </div>
+              </details>
+
+              <div class="uploads">
+                <label class="upload">
+                  <span>Idle pose</span>
+                  <input id="up-idle" type="file" accept="image/png,image/jpeg,image/webp" />
+                  <div class="preview" id="prev-idle"></div>
+                </label>
+                <label class="upload">
+                  <span>Action pose</span>
+                  <input id="up-action" type="file" accept="image/png,image/jpeg,image/webp" />
+                  <div class="preview" id="prev-action"></div>
+                </label>
+              </div>
+
+              <p id="custom-error" class="error hidden"></p>
+              <div class="row">
+                <button id="custom-save" class="btn btn-primary" disabled>Use this character</button>
+                <button id="custom-remove" class="btn btn-outline hidden">Remove custom character</button>
+              </div>
+              <p class="muted small">Your images are processed on your device and never uploaded anywhere.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ---------------- Pro ---------------- -->
+        <section class="panel" data-panel="pro">
+          <h2>Nudzie Pro</h2>
+          <p class="muted" id="license-line"></p>
+
+          <div id="license-locked">
+            <label class="field"><span>License key</span><input id="license-key" type="text" placeholder="Paste your key" /></label>
+            <div class="row">
+              <button id="activate-btn" class="btn btn-primary">Activate</button>
+              <button id="buy-btn" class="btn btn-outline">Get Nudzie Pro</button>
+            </div>
+            <p id="license-error" class="error hidden"></p>
+            <p class="muted small">Note: the license backend is a stub in this build — activation is disabled and Nudzie runs as the free tier. See PRO-TIER.md.</p>
+          </div>
+
+          <div id="license-active" class="hidden">
+            <button id="deactivate-btn" class="btn btn-outline">Deactivate on this device</button>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="./settings.ts"></script>
+  </body>
+</html>

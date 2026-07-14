@@ -1,0 +1,422 @@
+import {
+  getPrefs,
+  getScheduled,
+  setScheduled,
+  type Schedule,
+  type ScheduledReminder
+} from './store'
+import { listUpcoming, type UpcomingEvent } from './calendar'
+import { showReminder, clearQueuedReminders, type Reminder } from './windows/overlay'
+
+// ---------------------------------------------------------------------------
+// The scheduler drives BOTH reminder trigger types, and both route through the
+// same corner-walk overlay (showReminder):
+//   1. Calendar reminders  — from QuakPit: fires N minutes before meetings.
+//   2. Interval reminders  — from Hydrate Buddy: fires every INTERVAL_MIN inside
+//      active hours, for personal nudges (water, breaks, …).
+// ---------------------------------------------------------------------------
+
+let pollTimer: NodeJS.Timeout | null = null
+let tickTimer: NodeJS.Timeout | null = null
+let intervalTimer: NodeJS.Timeout | null = null
+const snoozeTimers = new Map<string, NodeJS.Timeout>()
+const lastFired = new Map<string, Reminder>() // so a snooze can re-show the same one
+
+let upcoming: UpcomingEvent[] = []
+const fired = new Set<string>()
+let paused = false
+
+const POLL_MS = 60_000 // refresh the event window every minute
+const TICK_MS = 15_000 // check calendar trigger times every 15s
+const FIRE_WINDOW_MS = 90_000 // fire within 90s after the trigger time
+
+export function startScheduler(): void {
+  stopScheduler()
+  void refresh()
+  pollTimer = setInterval(() => void refresh(), POLL_MS)
+  tickTimer = setInterval(tick, TICK_MS)
+  scheduleInterval(getPrefs().intervalMinutes)
+}
+
+export function stopScheduler(): void {
+  if (pollTimer) clearInterval(pollTimer)
+  if (tickTimer) clearInterval(tickTimer)
+  if (intervalTimer) clearTimeout(intervalTimer)
+  pollTimer = null
+  tickTimer = null
+  intervalTimer = null
+  for (const t of snoozeTimers.values()) clearTimeout(t)
+  snoozeTimers.clear()
+}
+
+export function getUpcoming(): UpcomingEvent[] {
+  return upcoming
+}
+
+// --- Pause (tray control) --------------------------------------------------
+
+export function setPaused(p: boolean): void {
+  paused = p
+  if (paused) {
+    if (intervalTimer) clearTimeout(intervalTimer)
+    intervalTimer = null
+    for (const t of snoozeTimers.values()) clearTimeout(t)
+    snoozeTimers.clear()
+    clearQueuedReminders() // drop anything waiting to appear
+  } else {
+    scheduleInterval(getPrefs().intervalMinutes)
+  }
+}
+
+export function isPaused(): boolean {
+  return paused
+}
+
+// Snooze length is capped 1–59 min at the source (the settings UI clamps too,
+// but a stale/hand-edited prefs.json shouldn't be able to exceed it).
+const MAX_SNOOZE = 59
+const clampSnooze = (m: number): number => Math.max(1, Math.min(MAX_SNOOZE, Math.round(m || 0)))
+
+// Keep the on-screen banner readable: trim very long meeting titles with an
+// ellipsis so they fit the corner window.
+const MAX_TITLE = 48
+const truncateTitle = (t: string): string =>
+  t.length > MAX_TITLE ? t.slice(0, MAX_TITLE - 1).trimEnd() + '…' : t
+
+// Manual nudges ("Remind me now", "Trigger a test reminder") are one-off: they
+// show the character but must NOT touch the recurring interval cadence, so the
+// user's schedule stays anchored. They're identified by their id prefix.
+const isManual = (id: string): boolean => id.startsWith('manual:') || id.startsWith('test:')
+
+// --- Calendar trigger (ported from QuakPit) --------------------------------
+
+async function refresh(): Promise<void> {
+  try {
+    upcoming = await listUpcoming(60)
+    const idList = upcoming.map((e) => e.id)
+    for (const key of fired) {
+      if (!idList.some((id) => key.startsWith(`${id}:`))) fired.delete(key)
+    }
+  } catch {
+    /* offline / not connected — keep last known list */
+  }
+}
+
+function tick(): void {
+  if (paused) return
+  const prefs = getPrefs()
+  const now = Date.now()
+  const lead = prefs.leadMinutes * 60_000
+
+  for (const ev of upcoming) {
+    // 1) The lead-time reminder (e.g. "Call with Jack in 5 minutes").
+    const triggerAt = ev.start - lead
+    const leadKey = `${ev.id}:${prefs.leadMinutes}`
+    const leadDue = now >= triggerAt && now < triggerAt + FIRE_WINDOW_MS
+    if (leadDue && ev.start > now && !fired.has(leadKey)) {
+      fired.add(leadKey)
+      const minutes = Math.max(1, Math.round((ev.start - now) / 60_000))
+      const message = prefs.messageTemplate
+        .replaceAll('{title}', truncateTitle(ev.title))
+        .replaceAll('{minutes}', String(minutes))
+      fireCalendar(leadKey, message)
+    }
+
+    // 2) Optional second nudge right at the start time ("… starting now").
+    if (prefs.remindAtStart) {
+      const startKey = `${ev.id}:start`
+      const startDue = now >= ev.start && now < ev.start + FIRE_WINDOW_MS
+      if (startDue && !fired.has(startKey)) {
+        fired.add(startKey)
+        fireCalendar(startKey, `${truncateTitle(ev.title)} starting now`)
+      }
+    }
+  }
+
+  evaluateScheduled(new Date())
+}
+
+// --- Scheduled trigger (once/daily/weekly/monthly/yearly) ------------------
+
+// A recurring occurrence that we were closed for by more than this is skipped
+// (we advance past it rather than firing hours late). One-off reminders always
+// fire, even late, so a missed "remind me at 3pm" still shows when you return.
+const SCHEDULED_CATCHUP_MS = 5 * 60_000
+
+const daysInMonth = (year: number, monthIndex: number): number =>
+  new Date(year, monthIndex + 1, 0).getDate()
+
+function parseHM(time: string): { h: number; m: number } {
+  const [h, m] = (time || '00:00').split(':').map((n) => parseInt(n, 10))
+  return { h: Number.isFinite(h) ? h : 0, m: Number.isFinite(m) ? m : 0 }
+}
+
+function at(base: Date, y: number, monthIndex: number, day: number, h: number, m: number): Date {
+  return new Date(y, monthIndex, day, h, m, 0, 0)
+}
+
+/** The most recent scheduled occurrence at or before `now`, or null. */
+function computePrevOccurrence(s: Schedule, now: Date): number | null {
+  const { h, m } = parseHM(s.time)
+
+  if (s.type === 'once') {
+    if (!s.date) return null
+    const [y, mo, d] = s.date.split('-').map((n) => parseInt(n, 10))
+    if (!y || !mo || !d) return null
+    const occ = at(now, y, mo - 1, d, h, m)
+    return occ.getTime() <= now.getTime() ? occ.getTime() : null
+  }
+
+  if (s.type === 'daily') {
+    const today = at(now, now.getFullYear(), now.getMonth(), now.getDate(), h, m)
+    if (today.getTime() <= now.getTime()) return today.getTime()
+    const y = new Date(now)
+    y.setDate(y.getDate() - 1)
+    return at(y, y.getFullYear(), y.getMonth(), y.getDate(), h, m).getTime()
+  }
+
+  if (s.type === 'weekly') {
+    const days = s.days ?? []
+    if (days.length === 0) return null
+    for (let off = 0; off <= 7; off++) {
+      const d = new Date(now)
+      d.setDate(d.getDate() - off)
+      const occ = at(d, d.getFullYear(), d.getMonth(), d.getDate(), h, m)
+      if (days.includes(occ.getDay()) && occ.getTime() <= now.getTime()) return occ.getTime()
+    }
+    return null
+  }
+
+  if (s.type === 'monthly') {
+    const dom = s.dayOfMonth ?? 1
+    const thisMonth = at(
+      now,
+      now.getFullYear(),
+      now.getMonth(),
+      Math.min(dom, daysInMonth(now.getFullYear(), now.getMonth())),
+      h,
+      m
+    )
+    if (thisMonth.getTime() <= now.getTime()) return thisMonth.getTime()
+    const py = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()
+    const pm = now.getMonth() === 0 ? 11 : now.getMonth() - 1
+    return at(now, py, pm, Math.min(dom, daysInMonth(py, pm)), h, m).getTime()
+  }
+
+  if (s.type === 'yearly') {
+    const mo = (s.month ?? 1) - 1
+    const day = s.day ?? 1
+    const thisYear = at(now, now.getFullYear(), mo, Math.min(day, daysInMonth(now.getFullYear(), mo)), h, m)
+    if (thisYear.getTime() <= now.getTime()) return thisYear.getTime()
+    const py = now.getFullYear() - 1
+    return at(now, py, mo, Math.min(day, daysInMonth(py, mo)), h, m).getTime()
+  }
+
+  return null
+}
+
+function evaluateScheduled(now: Date): void {
+  const list = getScheduled()
+  if (list.length === 0) return
+  let changed = false
+
+  for (const r of list) {
+    if (!r.enabled) continue
+    const prev = computePrevOccurrence(r.schedule, now)
+    if (prev == null) continue
+    if ((r.lastFired ?? 0) >= prev) continue // already fired this occurrence
+
+    const isOnce = r.schedule.type === 'once'
+    const withinCatchup = isOnce || now.getTime() - prev <= SCHEDULED_CATCHUP_MS
+    if (!withinCatchup) {
+      // Recurring occurrence we were closed for — skip it, don't fire late.
+      r.lastFired = prev
+      changed = true
+      continue
+    }
+
+    r.lastFired = prev
+    if (isOnce) r.enabled = false // one-off: fire exactly once
+    changed = true
+    fireScheduled(r, prev)
+  }
+
+  if (changed) setScheduled(list)
+}
+
+function fireScheduled(r: ScheduledReminder, occ: number): void {
+  const prefs = getPrefs()
+  const reminder: Reminder = {
+    id: `sched:${r.id}:${occ}`,
+    kind: 'scheduled',
+    message: r.message?.trim() || r.title,
+    acceptLabel: 'Got it',
+    snoozeLabel: `+${clampSnooze(prefs.snoozeMinutes)}m`,
+    snoozeMinutes: clampSnooze(prefs.snoozeMinutes),
+    character: r.character,
+    sound: prefs.soundEnabled
+  }
+  lastFired.set(reminder.id, reminder)
+  showReminder(reminder)
+}
+
+function fireCalendar(id: string, message: string): void {
+  const prefs = getPrefs()
+  const reminder: Reminder = {
+    id,
+    kind: 'calendar',
+    message,
+    acceptLabel: 'Got it',
+    snoozeLabel: `+${clampSnooze(prefs.snoozeMinutes)}m`,
+    snoozeMinutes: clampSnooze(prefs.snoozeMinutes),
+    sound: prefs.soundEnabled
+  }
+  lastFired.set(id, reminder)
+  showReminder(reminder)
+}
+
+// --- Interval trigger (ported from Hydrate Buddy, now local-timezone) ------
+
+function nowLocal(): { hour: number; minute: number; second: number } {
+  const d = new Date()
+  return { hour: d.getHours(), minute: d.getMinutes(), second: d.getSeconds() }
+}
+
+function isWithinActiveHours(): boolean {
+  const { hour } = nowLocal()
+  const { activeStartHour, activeEndHour } = getPrefs()
+  return hour >= activeStartHour && hour < activeEndHour
+}
+
+/** ms from now until the next activeStartHour (local time). */
+function msUntilNextActiveStart(): number {
+  const { hour, minute, second } = nowLocal()
+  const { activeStartHour } = getPrefs()
+  const minsNow = hour * 60 + minute
+  const target = activeStartHour * 60
+  const deltaMin = minsNow < target ? target - minsNow : 24 * 60 - minsNow + target
+  return deltaMin * 60 * 1000 - second * 1000
+}
+
+/** (Re)arms the single interval timer, honouring active hours + pause. */
+function scheduleInterval(minutes: number): void {
+  if (intervalTimer) clearTimeout(intervalTimer)
+  intervalTimer = null
+  const prefs = getPrefs()
+  if (paused || !prefs.intervalEnabled) return
+
+  const { hour, minute } = nowLocal()
+  const projected = hour * 60 + minute + minutes
+
+  let delayMs: number
+  if (isWithinActiveHours() && projected < prefs.activeEndHour * 60) {
+    delayMs = minutes * 60 * 1000
+  } else {
+    delayMs = msUntilNextActiveStart()
+  }
+  intervalTimer = setTimeout(fireInterval, delayMs)
+}
+
+function intervalReminder(): Reminder {
+  const prefs = getPrefs()
+  return {
+    id: `interval:${Date.now()}`,
+    kind: 'interval',
+    message: prefs.intervalMessage,
+    acceptLabel: 'Done ✅',
+    snoozeLabel: 'Snooze',
+    snoozeMinutes: clampSnooze(prefs.snoozeMinutes),
+    sound: prefs.soundEnabled
+  }
+}
+
+function fireInterval(): void {
+  if (paused) return
+  const prefs = getPrefs()
+  if (!isWithinActiveHours() || !prefs.intervalEnabled) {
+    scheduleInterval(prefs.intervalMinutes)
+    return
+  }
+  const reminder = intervalReminder()
+  lastFired.set(reminder.id, reminder)
+  showReminder(reminder)
+  // Self-sustaining: default to the next full interval; accept/snooze reset this.
+  scheduleInterval(prefs.intervalMinutes)
+}
+
+// --- Accept / snooze routing (called from ipc, driven by the overlay) ------
+
+export function handleAccept(id: string, kind: Reminder['kind']): void {
+  snoozeCancel(id)
+  lastFired.delete(id)
+  // Only the recurring interval reminder re-arms the cadence; manual/test nudges
+  // leave the schedule untouched.
+  if (kind === 'interval' && !isManual(id)) scheduleInterval(getPrefs().intervalMinutes)
+}
+
+export function handleSnooze(id: string, kind: Reminder['kind'], minutes: number): void {
+  snoozeCancel(id)
+  const mins = clampSnooze(minutes || getPrefs().snoozeMinutes)
+  const reminder = lastFired.get(id)
+
+  // A snooze is an explicit "remind me again in N minutes" — so it re-shows the
+  // SAME reminder after exactly that delay, regardless of active hours (they only
+  // gate the automatic interval cadence, not an explicit snooze). Works for both
+  // calendar and interval reminders.
+  // Manual/test nudges are one-off: they never touch the recurring cadence.
+  const touchesCadence = kind === 'interval' && !isManual(id)
+
+  if (!reminder) {
+    if (touchesCadence) scheduleInterval(mins)
+    return
+  }
+
+  // For the recurring interval reminder, drop the self-sustaining next tick so we
+  // don't get a duplicate nudge; the snooze re-show below becomes the next
+  // occurrence, and the normal cadence resumes once it's shown.
+  if (touchesCadence && intervalTimer) {
+    clearTimeout(intervalTimer)
+    intervalTimer = null
+  }
+
+  const t = setTimeout(() => {
+    snoozeTimers.delete(id)
+    if (paused) return
+    showReminder(reminder)
+    if (touchesCadence) scheduleInterval(getPrefs().intervalMinutes)
+  }, mins * 60_000)
+  snoozeTimers.set(id, t)
+}
+
+function snoozeCancel(id: string): void {
+  const t = snoozeTimers.get(id)
+  if (t) {
+    clearTimeout(t)
+    snoozeTimers.delete(id)
+  }
+}
+
+// --- Manual triggers (tray / settings) -------------------------------------
+
+/** "Remind me now": fire a one-off personal reminder without touching the cadence. */
+export function remindNow(): void {
+  const reminder = { ...intervalReminder(), id: `manual:${Date.now()}` }
+  lastFired.set(reminder.id, reminder)
+  showReminder(reminder)
+}
+
+/** A test reminder (tray + settings "trigger a test reminder"). */
+export function triggerTestReminder(): void {
+  const prefs = getPrefs()
+  const reminder: Reminder = {
+    id: `test:${Date.now()}`,
+    kind: 'interval',
+    message: 'Call with Jack in 5 minutes',
+    acceptLabel: 'Got it',
+    snoozeLabel: `+${clampSnooze(prefs.snoozeMinutes)}m`,
+    snoozeMinutes: clampSnooze(prefs.snoozeMinutes),
+    sound: prefs.soundEnabled
+  }
+  lastFired.set(reminder.id, reminder)
+  showReminder(reminder)
+}

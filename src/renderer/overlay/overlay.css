@@ -1,0 +1,231 @@
+/* Corner-walk overlay styling (ported from Hydrate Buddy's style.css). The
+   Google-Fonts @import from the original is removed — it violates the overlay's
+   CSP and won't load offline — so we use a bundled/system monospace stack that
+   keeps the pixel-toy feel. */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  cursor: default;
+}
+
+#stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* -------------------------------------------------------------- character */
+#pet {
+  position: absolute;
+  right: 18px;
+  bottom: 0;
+  width: 155px;
+  height: 272px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  transition: transform 1.15s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.4s ease;
+  transform: translateX(0);
+  opacity: 1;
+  filter: drop-shadow(0 6px 6px rgba(0, 0, 0, 0.28));
+}
+
+/* Off to the right, ready to walk in. */
+#pet.offstage {
+  transform: translateX(230px);
+  opacity: 0;
+}
+
+/* A gentle up/down bob while moving. */
+#pet.walking {
+  animation: walk-bob 0.36s steps(2, end) infinite;
+}
+
+@keyframes walk-bob {
+  0%,
+  100% {
+    margin-bottom: 0;
+  }
+  50% {
+    margin-bottom: 7px;
+  }
+}
+
+#pet img {
+  height: 100%;
+  width: auto;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Turn to face the exit direction as she walks off. */
+#pet.face-right img {
+  transform: scaleX(-1);
+}
+
+/* Little happy hop when the reminder is accepted. */
+#pet.celebrate {
+  animation: happy-hop 0.5s ease-in-out 2;
+}
+
+@keyframes happy-hop {
+  0%,
+  100% {
+    transform: translateX(0) translateY(0);
+  }
+  30% {
+    transform: translateX(0) translateY(-18px);
+  }
+  60% {
+    transform: translateX(0) translateY(0);
+  }
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ----------------------------------------------------------- speech bubble */
+#bubble {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  background: #fdfdf7;
+  border: 4px solid #1c1c1c;
+  border-radius: 6px;
+  padding: 16px 16px 14px;
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.18);
+  transform-origin: bottom right;
+  transition: transform 0.28s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.2s ease;
+}
+
+#bubble.hidden {
+  display: block !important;
+  opacity: 0;
+  transform: scale(0.4);
+  pointer-events: none;
+}
+
+#bubble-text {
+  font-family: 'SF Mono', 'Cascadia Mono', Menlo, Consolas, 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #1c1c1c;
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 14px;
+  /* Safety net so an unusually long message can't overflow the window
+     (the scheduler also truncates long meeting titles). */
+  overflow-wrap: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Bubble tail pointing down toward the character. */
+#bubble-tail {
+  position: absolute;
+  right: 46px;
+  bottom: -18px;
+  width: 0;
+  height: 0;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-top: 18px solid #1c1c1c;
+}
+
+#bubble-tail::after {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: -18px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 12px solid #fdfdf7;
+}
+
+/* ------------------------------------------------------------------ buttons */
+#buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.btn {
+  font-family: 'SF Mono', 'Cascadia Mono', Menlo, Consolas, 'Courier New', monospace;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  padding: 9px 12px;
+  border: 3px solid #1c1c1c;
+  border-radius: 4px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: transform 0.05s ease, box-shadow 0.05s ease;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.35);
+}
+
+.btn:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0.35);
+}
+
+.btn-yes {
+  background: #37c24a;
+  color: #fff;
+}
+
+.btn-yes:hover {
+  background: #2fae41;
+}
+
+.btn-snooze {
+  background: #fdfdf7;
+  color: #1c1c1c;
+}
+
+.btn-snooze:hover {
+  background: #ececec;
+}
+
+/* ---------------------------------------------------------------- confetti */
+#confetti {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: -20px;
+  font-size: 16px;
+  will-change: transform, opacity;
+  animation: confetti-fall var(--dur) linear forwards;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(var(--fall)) rotate(var(--spin));
+    opacity: 0;
+  }
+}
