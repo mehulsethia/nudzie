@@ -13,11 +13,11 @@
     <div id="app">
       <nav id="nav">
         <div class="brand"><img class="logo" src="./logo.png" alt="" />Nudzie <span id="plan-badge" class="badge free">Free</span></div>
-        <button class="nav-item active" data-tab="general">General</button>
-        <button class="nav-item" data-tab="interval">Reminders</button>
-        <button class="nav-item" data-tab="calendar">Calendars</button>
-        <button class="nav-item" data-tab="character">Character</button>
-        <button class="nav-item" data-tab="pro">Pro</button>
+        <button class="nav-item active" data-tab="general"><span class="nav-ic">⚙️</span>General</button>
+        <button class="nav-item" data-tab="interval"><span class="nav-ic">🔔</span>Reminders</button>
+        <button class="nav-item" data-tab="calendar"><span class="nav-ic">📅</span>Calendars</button>
+        <button class="nav-item" data-tab="character"><span class="nav-ic">🎨</span>Appearance</button>
+        <button class="nav-item" data-tab="pro"><span class="nav-ic">⭐</span>Nudzie Pro</button>
         <div class="nav-foot">
           <button id="side-test-btn" class="btn btn-outline btn-block">Trigger a test reminder</button>
         </div>
@@ -26,11 +26,13 @@
       <main id="content">
         <!-- ---------------- General ---------------- -->
         <section class="panel active" data-panel="general">
-          <h2>Calendar reminders</h2>
-          <p class="muted">How and when Nudzie nudges you before meetings.</p>
+          <h2>General</h2>
+
+          <h3>Calendar reminders</h3>
+          <p class="muted small">When and how Nudzie nudges you before meetings.</p>
 
           <label class="field">
-            <span>Lead time (minutes before a meeting)</span>
+            <span>Lead time (nudge this long before a meeting)</span>
             <input id="lead" type="number" min="0" max="120" />
           </label>
 
@@ -43,12 +45,12 @@
             <button class="tag-btn" data-token="{minutes}">Insert {minutes}</button>
           </div>
 
-          <label class="check"><input id="remindAtStart" type="checkbox" /> Also nudge at the meeting's start time</label>
+          <label class="check"><input id="remindAtStart" type="checkbox" /> Nudge again at meeting time</label>
           <label class="check"><input id="sound" type="checkbox" /> Play a sound</label>
-          <label class="check"><input id="login" type="checkbox" /> Launch at login <span class="muted small">(applies to installed builds)</span></label>
-          <label class="check"><input id="dockIcon" type="checkbox" /> Show in Dock <span class="muted small">(macOS - uncheck for menu-bar only)</span></label>
-          <label class="check"><input id="stay" type="checkbox" /> Stay signed in to calendars</label>
 
+          <hr class="divider" />
+
+          <h3>The character</h3>
           <label class="field">
             <span>Show the character on</span>
             <select id="display">
@@ -57,10 +59,12 @@
             </select>
           </label>
 
-          <label class="field">
-            <span>Snooze length (minutes, max 59)</span>
-            <input id="snoozeMinutes" type="number" min="1" max="59" />
-          </label>
+          <hr class="divider" />
+
+          <h3>App</h3>
+          <label class="check"><input id="login" type="checkbox" /> Launch at login <span class="muted small">(applies to installed builds)</span></label>
+          <label class="check"><input id="dockIcon" type="checkbox" /> Show in Dock <span class="muted small">(macOS - uncheck for menu-bar only)</span></label>
+          <label class="check"><input id="stay" type="checkbox" /> Stay signed in to calendars</label>
 
           <div class="row">
             <button id="test-btn" class="btn btn-primary">Trigger a test reminder</button>
@@ -72,6 +76,11 @@
         <section class="panel" data-panel="interval">
           <h2>Reminders</h2>
           <p class="muted">Repeating nudges and one-offs, all in one place - water and breaks on a timer, plus meds at 9 AM, a bill on the 1st, a birthday every year.</p>
+
+          <label class="field" style="max-width:280px">
+            <span>Snooze length (minutes, max 59) - applies to every reminder</span>
+            <input id="snoozeMinutes" type="number" min="1" max="59" />
+          </label>
 
           <ul id="rem-list" class="rem-list"></ul>
 
@@ -229,7 +238,7 @@
 
         <!-- ---------------- Character ---------------- -->
         <section class="panel" data-panel="character">
-          <h2>Character</h2>
+          <h2>Appearance</h2>
           <p class="muted">Pick your buddy - the one character who walks in for every reminder. Three free identities to choose from: Male, Female, and Androgynous. More novelty characters (and your own custom one) are a Pro perk.</p>
           <div id="characters" class="tiles"></div>
 

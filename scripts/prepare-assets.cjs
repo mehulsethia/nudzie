@@ -369,9 +369,10 @@ async function makeAppIcon(idleImage) {
   console.log(`Preparing transparent sprites for "${CHARACTER}":`)
   const idle = await processPose('idle')
   await processPose('action')
-  // The default character also becomes the tray icon + app icon.
+  // The tray/menu-bar icon is the brand app icon (see generate-tray-icon.cjs), not
+  // the character. The app icon (Dock) still falls back to the default character
+  // only when no brand icon exists.
   if (idle && CHARACTER === DEFAULT_CHARACTER) {
-    await makeTrayIcon(idle)
     await makeAppIcon(idle)
   }
   console.log(`Done. Sprites written to ${path.relative(ROOT, OUT_DIR)}/`)

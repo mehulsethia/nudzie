@@ -107,6 +107,9 @@ body {
 .badge.pro { background: var(--grape); color: #fff; }
 
 .nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-family: var(--pix);
   font-size: 15px;
   letter-spacing: 0.3px;
@@ -119,6 +122,7 @@ body {
   cursor: pointer;
   transition: background 0.12s ease, transform 0.06s ease;
 }
+.nav-ic { width: 18px; font-size: 15px; line-height: 1; text-align: center; flex: none; }
 .nav-item:hover { background: #efeefb; }
 .nav-item.active {
   background: var(--grape);
