@@ -15,6 +15,12 @@ function keepDockVisible(): void {
   void app.dock.show()
 }
 
+// Free-tier identities and the default. Kept in sync with the renderer registry
+// (src/renderer/characters.ts) — the main process can't import it (Vite asset
+// imports), so the authoritative free/Pro gate lives here.
+const FREE_CHARACTERS = new Set(['male', 'female', 'androgynous'])
+const DEFAULT_CHARACTER = 'male'
+
 /** One reminder to show via the corner-walk character. */
 export type Reminder = {
   id: string
@@ -156,9 +162,10 @@ export function showReminder(reminder: Reminder): void {
     const pro = isPremium()
     const selected = reminder.character ?? prefs.character
 
-    let character = 'buddy'
+    let character = DEFAULT_CHARACTER
     if (selected === 'custom' && canUseCustomCharacter()) character = 'custom'
     else if (pro) character = selected
+    else if (FREE_CHARACTERS.has(selected)) character = selected // any free identity
 
     const full: Reminder = {
       ...reminder,
@@ -173,7 +180,7 @@ export function showReminder(reminder: Reminder): void {
         full.idleUrl = custom.idle
         full.actionUrl = custom.action
       } else {
-        full.character = 'buddy'
+        full.character = DEFAULT_CHARACTER
       }
     }
 

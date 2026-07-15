@@ -24,8 +24,9 @@ export type Prefs = {
   dockIcon: boolean // macOS: show a Dock icon (false = menu-bar-only)
   targetDisplay: 'cursor' | 'primary'
 
-  // --- Pro-gated asset ---
-  character: string // which character walks in; free is forced to the default
+  // --- Character (free: one of three base identities; Pro: novelty + custom) ---
+  character: string // which character walks in; free is limited to the free set
+  characterChosen: boolean // has the user picked one yet (drives first-run onboarding)
 
   // --- One-time seed of the starter reminder templates (all disabled) ---
   templatesSeeded: boolean
@@ -49,7 +50,8 @@ const DEFAULT_PREFS: Prefs = {
   dockIcon: true,
   targetDisplay: 'cursor',
 
-  character: 'buddy',
+  character: 'male',
+  characterChosen: false,
   templatesSeeded: false
 }
 

@@ -17,6 +17,9 @@ const fs = require('node:fs')
 const Jimp = require('jimp')
 
 const CHARACTER = process.argv[2] || 'buddy'
+// The default identity also becomes the tray icon (and app icon, unless a brand
+// icon exists). Keep in sync with DEFAULT in src/renderer/characters.ts.
+const DEFAULT_CHARACTER = 'male'
 const ROOT = path.join(__dirname, '..')
 // Prefer a per-character raw folder; fall back to the flat assets/raw/ layout.
 const perChar = path.join(ROOT, 'assets', 'raw', CHARACTER)
@@ -115,6 +118,87 @@ function removeBackground(image, tolerance) {
   return image
 }
 
+/**
+ * After background removal, keep only the largest connected blob of opaque pixels
+ * (the character) and clear everything else. Drops stray decorations the model
+ * sometimes adds (a sparkle in a corner, a detached shadow), which would otherwise
+ * defeat autocrop and float next to the character in the overlay.
+ */
+function keepLargestComponent(image, alphaThreshold = 24) {
+  const { width, height, data } = image.bitmap
+  const n = width * height
+  const label = new Int32Array(n).fill(-1) // -1 unlabelled, -2 background
+  const stack = []
+  let bestLabel = -1
+  let bestSize = 0
+  let cur = 0
+  for (let s = 0; s < n; s++) {
+    if (label[s] !== -1) continue
+    if (data[s * 4 + 3] <= alphaThreshold) {
+      label[s] = -2
+      continue
+    }
+    const myLabel = cur++
+    let size = 0
+    stack.length = 0
+    stack.push(s)
+    label[s] = myLabel
+    while (stack.length) {
+      const p = stack.pop()
+      size++
+      const x = p % width
+      const y = (p - x) / width
+      const neigh = []
+      if (x + 1 < width) neigh.push(p + 1)
+      if (x - 1 >= 0) neigh.push(p - 1)
+      if (y + 1 < height) neigh.push(p + width)
+      if (y - 1 >= 0) neigh.push(p - width)
+      for (const q of neigh) {
+        if (label[q] !== -1) continue
+        if (data[q * 4 + 3] <= alphaThreshold) {
+          label[q] = -2
+          continue
+        }
+        label[q] = myLabel
+        stack.push(q)
+      }
+    }
+    if (size > bestSize) {
+      bestSize = size
+      bestLabel = myLabel
+    }
+  }
+  for (let p = 0; p < n; p++) {
+    if (label[p] !== bestLabel) data[p * 4 + 3] = 0
+  }
+  return image
+}
+
+/** Crop tightly to the character's alpha bounding box (with a small margin). */
+function cropToContent(image, alphaThreshold = 10) {
+  const { width: w, height: h, data } = image.bitmap
+  let minX = w
+  let minY = h
+  let maxX = -1
+  let maxY = -1
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (data[(y * w + x) * 4 + 3] <= alphaThreshold) continue
+      if (x < minX) minX = x
+      if (x > maxX) maxX = x
+      if (y < minY) minY = y
+      if (y > maxY) maxY = y
+    }
+  }
+  if (maxX < 0) return image // fully transparent — nothing to crop
+  const pad = Math.round(Math.max(maxX - minX, maxY - minY) * 0.03)
+  const cx = Math.max(0, minX - pad)
+  const cy = Math.max(0, minY - pad)
+  const cw = Math.min(w - cx, maxX - minX + 1 + 2 * pad)
+  const ch = Math.min(h - cy, maxY - minY + 1 + 2 * pad)
+  return image.crop(cx, cy, cw, ch)
+}
+
 async function processPose(name) {
   const src = path.join(RAW_DIR, `${name}.png`)
   if (!fs.existsSync(src)) {
@@ -125,11 +209,8 @@ async function processPose(name) {
   console.log(`  - ${name}.png ...`)
   const image = await Jimp.read(src)
   removeBackground(image, TOLERANCE)
-  try {
-    image.autocrop({ tolerance: 0.002, cropOnlyFrames: false })
-  } catch (e) {
-    console.log(`    (autocrop skipped: ${e.message})`)
-  }
+  keepLargestComponent(image)
+  cropToContent(image)
   await image.writeAsync(out)
   return image
 }
@@ -289,7 +370,7 @@ async function makeAppIcon(idleImage) {
   const idle = await processPose('idle')
   await processPose('action')
   // The default character also becomes the tray icon + app icon.
-  if (idle && CHARACTER === 'buddy') {
+  if (idle && CHARACTER === DEFAULT_CHARACTER) {
     await makeTrayIcon(idle)
     await makeAppIcon(idle)
   }

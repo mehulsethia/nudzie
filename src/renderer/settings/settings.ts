@@ -368,7 +368,8 @@ function renderCharacters(): void {
     tile.addEventListener('click', () => {
       if (locked) return showTab('pro')
       prefs.character = c.id
-      void q.setPrefs({ character: c.id })
+      prefs.characterChosen = true
+      void q.setPrefs({ character: c.id, characterChosen: true })
       renderCharacters()
     })
     charactersEl.append(tile)
@@ -387,7 +388,8 @@ function renderCharacters(): void {
     tile.append(img, name)
     tile.addEventListener('click', () => {
       prefs.character = 'custom'
-      void q.setPrefs({ character: 'custom' })
+      prefs.characterChosen = true
+      void q.setPrefs({ character: 'custom', characterChosen: true })
       renderCharacters()
     })
     charactersEl.append(tile)
@@ -792,4 +794,6 @@ void (async () => {
   renderReminders()
   showPicker()
   await refreshCalendar()
+  // First run: land on Character so the user picks one of the free identities.
+  if (!prefs.characterChosen) showTab('character')
 })()

@@ -62,6 +62,8 @@ declare global {
     dockIcon: boolean
     targetDisplay: 'cursor' | 'primary'
     character: string
+    characterChosen: boolean
+    templatesSeeded: boolean
   }
 
   type ProviderStatus = {
