@@ -4,8 +4,9 @@ export {}
 declare global {
   type Reminder = {
     id: string
-    kind: 'calendar' | 'interval' | 'scheduled'
+    kind: 'calendar' | 'interval' | 'scheduled' | 'summary'
     message: string
+    items?: string[]
     acceptLabel: string
     snoozeLabel: string
     snoozeMinutes: number

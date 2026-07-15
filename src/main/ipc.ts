@@ -125,12 +125,14 @@ export function registerIpc(): void {
     remindNow()
     return true
   })
-  ipcMain.on('reminder:accept', (_e, id: string, kind: 'calendar' | 'interval' | 'scheduled') =>
-    handleAccept(id, kind)
+  ipcMain.on(
+    'reminder:accept',
+    (_e, id: string, kind: 'calendar' | 'interval' | 'scheduled' | 'summary') =>
+      handleAccept(id, kind)
   )
   ipcMain.on(
     'reminder:snooze',
-    (_e, id: string, kind: 'calendar' | 'interval' | 'scheduled', minutes: number) =>
+    (_e, id: string, kind: 'calendar' | 'interval' | 'scheduled' | 'summary', minutes: number) =>
       handleSnooze(id, kind, minutes)
   )
   ipcMain.on('reminder:hide', () => overlayDone())

@@ -18,8 +18,12 @@ function keepDockVisible(): void {
 /** One reminder to show via the corner-walk character. */
 export type Reminder = {
   id: string
-  kind: 'calendar' | 'interval' | 'scheduled' // which trigger produced it (routes accept/snooze)
+  // Which trigger produced it (routes accept/snooze). 'summary' is the coalesced
+  // "while you were away" catch-up nudge — acknowledge-only, no snooze.
+  kind: 'calendar' | 'interval' | 'scheduled' | 'summary'
   message: string
+  // For 'summary': the list of missed reminders shown inside the bubble.
+  items?: string[]
   acceptLabel: string
   snoozeLabel: string
   snoozeMinutes: number

@@ -30,6 +30,70 @@ const POLL_MS = 60_000 // refresh the event window every minute
 const TICK_MS = 15_000 // check calendar trigger times every 15s
 const FIRE_WINDOW_MS = 90_000 // fire within 90s after the trigger time
 
+// ---------------------------------------------------------------------------
+// Catch-up on return (sleep/lock overnight, or the app was quit and reopened).
+// One-off reminders and snoozes that come due while we're away would otherwise
+// fire in a back-to-back burst the moment you return. Instead, anything firing
+// more than LATE_SLACK_MS after its due time is treated as "missed while away":
+// collected, and — after a short debounce so a whole batch lands together —
+// shown as ONE acknowledge-only "while you were away" summary. Items older than
+// STALE_MS are dropped as no longer relevant. Interval nudges (water/breaks) and
+// calendar/recurring reminders already self-skip on return, so they're untouched.
+const LATE_SLACK_MS = 120_000 // >2 min late ⇒ we were away, not normal operation
+const STALE_MS = 12 * 60 * 60_000 // drop anything older than 12h
+const FLUSH_DEBOUNCE_MS = 1_500 // wait this long for the rest of the batch
+const MAX_SUMMARY_ITEMS = 6 // cap the list; the rest become "+N more"
+
+type Missed = { message: string; dueAt: number }
+let missed: Missed[] = []
+let flushTimer: NodeJS.Timeout | null = null
+
+/** True when `dueAt` is late enough (relative to `now`) to count as missed-while-away. */
+export function isMissed(dueAt: number, now: number, lateSlackMs = LATE_SLACK_MS): boolean {
+  return now - dueAt > lateSlackMs
+}
+
+/** True when `dueAt` is old enough to drop rather than surface. */
+export function isStale(dueAt: number, now: number, staleMs = STALE_MS): boolean {
+  return now - dueAt > staleMs
+}
+
+/** Cap the list, folding any overflow into a trailing "+N more" line. */
+export function summarizeItems(items: string[], max = MAX_SUMMARY_ITEMS): string[] {
+  if (items.length <= max) return items
+  const shown = items.slice(0, max - 1)
+  shown.push(`+${items.length - (max - 1)} more`)
+  return shown
+}
+
+/** Collect a missed reminder into the pending batch (dropping stale ones). */
+function collectMissed(message: string, dueAt: number): void {
+  if (isStale(dueAt, Date.now())) return
+  missed.push({ message, dueAt })
+  if (flushTimer) clearTimeout(flushTimer)
+  flushTimer = setTimeout(flushMissed, FLUSH_DEBOUNCE_MS) // re-arm so a whole batch coalesces
+}
+
+/** Show the collected batch as one acknowledge-only summary, or drop it if paused. */
+function flushMissed(): void {
+  flushTimer = null
+  const batch = missed
+  missed = []
+  if (paused || batch.length === 0) return
+  const items = summarizeItems(batch.sort((a, b) => a.dueAt - b.dueAt).map((m) => m.message))
+  const summary: Reminder = {
+    id: `summary:${Date.now()}`,
+    kind: 'summary',
+    message: 'While you were away',
+    items,
+    acceptLabel: 'Got it',
+    snoozeLabel: '', // acknowledge-only — the renderer hides the snooze button
+    snoozeMinutes: 0,
+    sound: getPrefs().soundEnabled
+  }
+  showReminder(summary)
+}
+
 export function startScheduler(): void {
   stopScheduler()
   void refresh()
@@ -47,6 +111,9 @@ export function stopScheduler(): void {
   intervalTimer = null
   for (const t of snoozeTimers.values()) clearTimeout(t)
   snoozeTimers.clear()
+  if (flushTimer) clearTimeout(flushTimer)
+  flushTimer = null
+  missed = []
 }
 
 export function getUpcoming(): UpcomingEvent[] {
@@ -62,6 +129,9 @@ export function setPaused(p: boolean): void {
     intervalTimer = null
     for (const t of snoozeTimers.values()) clearTimeout(t)
     snoozeTimers.clear()
+    if (flushTimer) clearTimeout(flushTimer)
+    flushTimer = null
+    missed = [] // drop any collected catch-up items
     clearQueuedReminders() // drop anything waiting to appear
   } else {
     scheduleInterval(getPrefs().intervalMinutes)
@@ -246,10 +316,21 @@ function evaluateScheduled(now: Date): void {
 
 function fireScheduled(r: ScheduledReminder, occ: number): void {
   const prefs = getPrefs()
+  const message = r.message?.trim() || r.title
+
+  // A one-off firing well after its time = missed while we were away. Coalesce it
+  // into the "while you were away" summary instead of a solo late walk-in.
+  // (Recurring occurrences we were away for are skipped upstream, so they never
+  // reach here late.)
+  if (r.schedule.type === 'once' && isMissed(occ, Date.now())) {
+    collectMissed(message, occ)
+    return
+  }
+
   const reminder: Reminder = {
     id: `sched:${r.id}:${occ}`,
     kind: 'scheduled',
-    message: r.message?.trim() || r.title,
+    message,
     acceptLabel: 'Got it',
     snoozeLabel: `+${clampSnooze(prefs.snoozeMinutes)}m`,
     snoozeMinutes: clampSnooze(prefs.snoozeMinutes),
@@ -379,10 +460,14 @@ export function handleSnooze(id: string, kind: Reminder['kind'], minutes: number
     intervalTimer = null
   }
 
+  const dueAt = Date.now() + mins * 60_000
   const t = setTimeout(() => {
     snoozeTimers.delete(id)
     if (paused) return
-    showReminder(reminder)
+    // If the machine slept through the snooze, this re-show is "missed while
+    // away" — coalesce it into the summary instead of a lone late walk-in.
+    if (isMissed(dueAt, Date.now())) collectMissed(reminder.message, dueAt)
+    else showReminder(reminder)
     if (touchesCadence) scheduleInterval(getPrefs().intervalMinutes)
   }, mins * 60_000)
   snoozeTimers.set(id, t)

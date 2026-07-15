@@ -12,8 +12,9 @@ import { playSound } from '../sounds'
 
 export type ReminderView = {
   id: string
-  kind: 'calendar' | 'interval' | 'scheduled'
+  kind: 'calendar' | 'interval' | 'scheduled' | 'summary'
   message: string
+  items?: string[] // for 'summary': the missed reminders listed in the bubble
   acceptLabel: string
   snoozeLabel: string
   snoozeMinutes: number
@@ -73,14 +74,18 @@ export class CornerWalk {
       this.refs.spriteAction.src = char.action
     }
 
-    // Button labels come from the payload (per reminder type).
+    // Button labels come from the payload (per reminder type). A summary — or any
+    // reminder with no snooze label — is acknowledge-only, so hide the snooze button.
     this.refs.acceptBtn.textContent = r.acceptLabel
     this.refs.snoozeBtn.textContent = r.snoozeLabel
+    const snoozable = r.kind !== 'summary' && !!r.snoozeLabel
+    this.refs.snoozeBtn.classList.toggle('hidden', !snoozable)
 
     if (r.sound !== false) this.playChime()
 
     await this.walkIn()
-    this.showBubble(r.message, true)
+    if (r.kind === 'summary') this.showSummary(r.message, r.items ?? [])
+    else this.showBubble(r.message, true)
     this.busy = false
   }
 
@@ -124,8 +129,31 @@ export class CornerWalk {
 
   // ---- bubble ----
   private showBubble(text: string, withButtons: boolean): void {
+    this.refs.bubbleText.classList.remove('summary')
     this.refs.bubbleText.textContent = text
     this.refs.buttons.classList.toggle('hidden', !withButtons)
+    this.refs.bubble.classList.remove('hidden')
+  }
+
+  // The "while you were away" catch-up: a header plus a bullet list of the missed
+  // reminders. Built as DOM nodes (never innerHTML) so reminder text can't inject markup.
+  private showSummary(header: string, items: string[]): void {
+    const el = this.refs.bubbleText
+    el.classList.add('summary')
+    el.textContent = ''
+    const head = document.createElement('div')
+    head.className = 'summary-head'
+    head.textContent = header
+    el.appendChild(head)
+    const list = document.createElement('ul')
+    list.className = 'summary-list'
+    for (const item of items) {
+      const li = document.createElement('li')
+      li.textContent = item
+      list.appendChild(li)
+    }
+    el.appendChild(list)
+    this.refs.buttons.classList.remove('hidden')
     this.refs.bubble.classList.remove('hidden')
   }
 

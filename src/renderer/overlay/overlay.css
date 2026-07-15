@@ -135,6 +135,31 @@ body {
   overflow: hidden;
 }
 
+/* "While you were away" catch-up: a header + bullet list instead of one line.
+   Overrides the single-line clamp so the list can lay out normally. */
+#bubble-text.summary {
+  display: block;
+  -webkit-line-clamp: none;
+  text-align: left;
+  margin-bottom: 12px;
+}
+
+.summary-head {
+  text-align: center;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.summary-list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.summary-list li {
+  margin: 3px 0;
+  overflow-wrap: break-word;
+}
+
 /* Bubble tail pointing down toward the character. */
 #bubble-tail {
   position: absolute;
