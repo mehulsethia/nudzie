@@ -26,7 +26,7 @@ export function applyDockMode(): void {
  *  - the user's custom-character app icon if they've set one, otherwise
  *  - the bundled default character icon (build/icon.png).
  * Called on launch and whenever the custom character changes, so the icon
- * tracks the character dynamically — even in dev, where it overrides the plain
+ * tracks the character dynamically - even in dev, where it overrides the plain
  * Electron icon.
  */
 export function applyAppIcon(): void {

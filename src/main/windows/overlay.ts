@@ -5,7 +5,7 @@ import { isPremium, canUseCustomCharacter } from '../license'
 
 /**
  * Showing an always-on-top window can make macOS drop the app to "accessory"
- * (Dock icon disappears). Re-assert the Dock icon so the app stays reachable —
+ * (Dock icon disappears). Re-assert the Dock icon so the app stays reachable -
  * but only when the user actually wants a Dock icon. In menu-bar-only mode we
  * leave it hidden on purpose.
  */
@@ -19,7 +19,7 @@ function keepDockVisible(): void {
 export type Reminder = {
   id: string
   // Which trigger produced it (routes accept/snooze). 'summary' is the coalesced
-  // "while you were away" catch-up nudge — acknowledge-only, no snooze.
+  // "while you were away" catch-up nudge - acknowledge-only, no snooze.
   kind: 'calendar' | 'interval' | 'scheduled' | 'summary'
   message: string
   // For 'summary': the list of missed reminders shown inside the bubble.
@@ -55,7 +55,7 @@ const MAX_QUEUE = 20
 /**
  * Creates the transparent, frameless, always-on-top corner window the character
  * walks into. Created hidden; shown per reminder and hidden again when the
- * character walks off (unlike QuakPit's persistent full-screen overlay — we chose
+ * character walks off (unlike QuakPit's persistent full-screen overlay - we chose
  * the Hydrate Buddy per-reminder corner window so the accept/snooze buttons are
  * clickable). The window stays interactive (not click-through) so its buttons work.
  */
@@ -142,7 +142,7 @@ function pump(): void {
 
 /**
  * Queues one reminder. The character walks in, shows the message + buttons, and
- * — because reminders are serialised — anything that arrives while it's on
+ * - because reminders are serialised - anything that arrives while it's on
  * screen waits its turn instead of interrupting it.
  */
 export function showReminder(reminder: Reminder): void {
@@ -178,7 +178,7 @@ export function showReminder(reminder: Reminder): void {
     }
 
     // De-dupe: don't queue (or re-queue) a reminder that's already showing or
-    // waiting — e.g. a repeated snooze re-show of the same id.
+    // waiting - e.g. a repeated snooze re-show of the same id.
     if (currentId === full.id || queue.some((r) => r.id === full.id)) return
     if (queue.length >= MAX_QUEUE) return // guard against unbounded growth
 

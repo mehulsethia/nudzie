@@ -1,7 +1,7 @@
 // Reusable corner-walk animation component (ported from Hydrate Buddy's
 // renderer.js and generalised). It is NOT tied to any one reminder type: it
 // takes a generic payload (message + button labels + character + snooze delay)
-// and runs the whole beat — walk in, show a speech bubble with accept/snooze,
+// and runs the whole beat - walk in, show a speech bubble with accept/snooze,
 // celebrate on accept or play a "snoozed" beat on snooze, then walk off.
 //
 // Both calendar reminders and interval reminders route through this same
@@ -27,7 +27,7 @@ export type ReminderView = {
 export type CornerWalkCallbacks = {
   onAccept: (r: ReminderView) => void
   onSnooze: (r: ReminderView) => void
-  onDone: () => void // walked off — safe to hide the window
+  onDone: () => void // walked off - safe to hide the window
 }
 
 type Refs = {
@@ -74,8 +74,8 @@ export class CornerWalk {
       this.refs.spriteAction.src = char.action
     }
 
-    // Button labels come from the payload (per reminder type). A summary — or any
-    // reminder with no snooze label — is acknowledge-only, so hide the snooze button.
+    // Button labels come from the payload (per reminder type). A summary - or any
+    // reminder with no snooze label - is acknowledge-only, so hide the snooze button.
     this.refs.acceptBtn.textContent = r.acceptLabel
     this.refs.snoozeBtn.textContent = r.snoozeLabel
     const snoozable = r.kind !== 'summary' && !!r.snoozeLabel
@@ -217,7 +217,7 @@ export class CornerWalk {
     this.busy = true
     const r = this.current
     this.cb.onSnooze(r)
-    this.showBubble(`Okay — back in ${r.snoozeMinutes} min!`, false)
+    this.showBubble(`Okay - back in ${r.snoozeMinutes} min!`, false)
     await wait(1300)
     await this.walkOut()
     this.busy = false

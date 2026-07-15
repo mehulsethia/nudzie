@@ -1,4 +1,4 @@
-// Client-side character-art pipeline — a Canvas port of the jimp
+// Client-side character-art pipeline - a Canvas port of the jimp
 // `scripts/prepare-assets.cjs` pipeline, so a user's uploaded images can be
 // processed in-app (in the settings renderer) without shipping jimp at runtime.
 // Same algorithm: border-seeded flood fill of the flat background to
@@ -231,7 +231,7 @@ export async function makeTrayFromIdle(idleDataUrl: string): Promise<string> {
 
 /**
  * Composes an app-icon (Dock / taskbar) from a (transparent) idle sprite: the
- * character's face on a rounded blue tile — matching the build-time app icon so
+ * character's face on a rounded blue tile - matching the build-time app icon so
  * a custom character updates the app icon to match. Output 512², PNG data URL.
  */
 export async function makeAppIconFromIdle(idleDataUrl: string): Promise<string> {

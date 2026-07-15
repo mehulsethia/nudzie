@@ -1,4 +1,4 @@
-// The character registry — the walk-in companion shown by the corner-walk overlay.
+// The character registry - the walk-in companion shown by the corner-walk overlay.
 // Each character is an idle/action sprite pair (produced by `npm run prepare-assets`)
 // plus a small bit of metadata. This open-source build ships only the one free
 // "Buddy" character; the Pro build adds more on top, gated by the license in the

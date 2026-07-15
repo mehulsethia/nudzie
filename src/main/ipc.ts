@@ -186,7 +186,7 @@ export function registerIpc(): void {
     return prefs
   })
 
-  // --- License / premium (stub — defaults to free tier) ---
+  // --- License / premium (stub - defaults to free tier) ---
   ipcMain.handle('license:status', () => license.status())
   ipcMain.handle('license:activate', (_e, key: string) => license.activate(key))
   ipcMain.handle('license:deactivate', () => license.deactivate())

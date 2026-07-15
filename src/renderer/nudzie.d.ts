@@ -19,13 +19,16 @@ declare global {
   type CustomCharacter = { idle: string; action: string; tray?: string; appIcon?: string }
 
   type Schedule = {
-    type: 'once' | 'daily' | 'weekly' | 'monthly' | 'yearly'
+    type: 'once' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'interval'
     time: string
     date?: string
     days?: number[]
     dayOfMonth?: number
     month?: number
     day?: number
+    everyMinutes?: number
+    activeStartHour?: number
+    activeEndHour?: number
   }
   type ScheduledReminder = {
     id: string

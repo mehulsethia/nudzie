@@ -4,13 +4,13 @@ import { machineIdSync } from 'node-machine-id'
 import { clearEntitlement, loadEntitlement, saveEntitlement } from './store'
 
 // ---------------------------------------------------------------------------
-// LICENSE CHECK — STUB (defaults to FREE tier).
+// LICENSE CHECK - STUB (defaults to FREE tier).
 //
 // This preserves QuakPit's open-core license-check *flow and gating shape*
 // (activate → validate → deactivate, an encrypted entitlement cache, an offline
 // grace window, and a single isPremium() gate), but every reference to a real
 // payment provider has been replaced with a generic placeholder. No real keys
-// or backend are wired up yet — see PRO-TIER.md for exactly what to fill in.
+// or backend are wired up yet - see PRO-TIER.md for exactly what to fill in.
 //
 // Turn LICENSE_BACKEND_ENABLED on and implement verifyKey()/revalidateKey()
 // against your own backend + payment provider to go live. Until then activate()
@@ -115,7 +115,7 @@ export function status(): LicenseStatus {
 }
 
 // ---------------------------------------------------------------------------
-// Backend integration points — STUBBED. Fill these two functions in to go live.
+// Backend integration points - STUBBED. Fill these two functions in to go live.
 // Each should talk to your license/payment backend and return a normalized shape.
 // ---------------------------------------------------------------------------
 
@@ -173,7 +173,7 @@ export async function validate(): Promise<LicenseStatus> {
     }
     persist()
   } catch {
-    // Offline — keep the cached entitlement; the grace window covers this.
+    // Offline - keep the cached entitlement; the grace window covers this.
   }
   return status()
 }

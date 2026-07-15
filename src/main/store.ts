@@ -2,7 +2,7 @@ import { app, safeStorage } from 'electron'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-/** Non-personal preferences only — no calendar data ever lives here. */
+/** Non-personal preferences only - no calendar data ever lives here. */
 export type Prefs = {
   // --- Calendar reminders (from QuakPit's scheduler) ---
   leadMinutes: number // fire this many minutes before a meeting
@@ -11,8 +11,8 @@ export type Prefs = {
 
   // --- Interval / personal reminders (from Hydrate Buddy's timing logic) ---
   intervalEnabled: boolean
-  activeStartHour: number // 0–23, local time — reminders may appear from here
-  activeEndHour: number // 0–23, local time — reminders stop after here
+  activeStartHour: number // 0-23, local time - reminders may appear from here
+  activeEndHour: number // 0-23, local time - reminders stop after here
   intervalMinutes: number // cadence
   snoozeMinutes: number // "remind me again in N" for the Snooze button
   intervalMessage: string // the copy shown for interval reminders
@@ -26,6 +26,9 @@ export type Prefs = {
 
   // --- Pro-gated asset ---
   character: string // which character walks in; free is forced to the default
+
+  // --- One-time seed of the starter reminder templates (all disabled) ---
+  templatesSeeded: boolean
 }
 
 const DEFAULT_PREFS: Prefs = {
@@ -46,7 +49,8 @@ const DEFAULT_PREFS: Prefs = {
   dockIcon: true,
   targetDisplay: 'cursor',
 
-  character: 'buddy'
+  character: 'buddy',
+  templatesSeeded: false
 }
 
 function dataDir(): string {
@@ -61,7 +65,7 @@ const icloudPath = (): string => join(dataDir(), 'icloud.bin')
 const googleCredsPath = (): string => join(dataDir(), 'google-creds.bin')
 const icalPath = (): string => join(dataDir(), 'ical-feeds.bin')
 // The user's own character: idle/action/tray poses, kept as ready-to-render data
-// URLs (decorative, chosen by the user — not sensitive, so not encrypted). They
+// URLs (decorative, chosen by the user - not sensitive, so not encrypted). They
 // never leave the device; the overlay reads them through the main process only.
 const scheduledPath = (): string => join(dataDir(), 'scheduled.json')
 const customIdlePath = (): string => join(dataDir(), 'custom-idle.txt')
@@ -101,13 +105,17 @@ export function setPrefs(patch: Partial<Prefs>): Prefs {
 // Non-sensitive user config, stored as plain JSON (like prefs).
 
 export type Schedule = {
-  type: 'once' | 'daily' | 'weekly' | 'monthly' | 'yearly'
-  time: string // 'HH:MM' 24-hour, local time
+  type: 'once' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'interval'
+  time: string // 'HH:MM' 24-hour, local time (unused for 'interval')
   date?: string // once: 'YYYY-MM-DD'
   days?: number[] // weekly: 0=Sun … 6=Sat
-  dayOfMonth?: number // monthly: 1–31 (clamped to the month's length)
-  month?: number // yearly: 1–12
-  day?: number // yearly: 1–31 (clamped)
+  dayOfMonth?: number // monthly: 1-31 (clamped to the month's length)
+  month?: number // yearly: 1-12
+  day?: number // yearly: 1-31 (clamped)
+  // interval: repeat every N minutes within an active hour window (local time)
+  everyMinutes?: number
+  activeStartHour?: number // 0-23
+  activeEndHour?: number // 0-23
 }
 
 export type ScheduledReminder = {
@@ -141,6 +149,46 @@ export function setScheduled(list: ScheduledReminder[]): void {
   } catch {
     /* best-effort */
   }
+}
+
+// Starter reminders offered on first run - all DISABLED by default; the user flips
+// on the ones they want. Three interval nudges (body basics) + one daily reflection.
+const TEMPLATE_REMINDERS: Omit<ScheduledReminder, 'id'>[] = [
+  {
+    title: 'Water break',
+    message: 'Time for a water break 💧',
+    enabled: false,
+    schedule: { type: 'interval', time: '', everyMinutes: 60, activeStartHour: 10, activeEndHour: 19 }
+  },
+  {
+    title: 'Stretch break',
+    message: 'Stand up and stretch, roll your shoulders 🧘',
+    enabled: false,
+    schedule: { type: 'interval', time: '', everyMinutes: 45, activeStartHour: 10, activeEndHour: 19 }
+  },
+  {
+    title: 'Get up & walk',
+    message: 'Get up and walk for a couple of minutes 🚶',
+    enabled: false,
+    schedule: { type: 'interval', time: '', everyMinutes: 120, activeStartHour: 10, activeEndHour: 19 }
+  },
+  {
+    title: 'Evening reflection',
+    message: 'One good thing today?',
+    enabled: false,
+    schedule: { type: 'daily', time: '21:00' }
+  }
+]
+
+/** Seed the starter templates once (prepended so they lead the list). No-op after the first run. */
+export function seedDefaultReminders(): void {
+  if (getPrefs().templatesSeeded) return
+  const seeded: ScheduledReminder[] = TEMPLATE_REMINDERS.map((t, i) => ({
+    ...t,
+    id: `tpl_${Date.now()}_${i}`
+  }))
+  setScheduled([...seeded, ...getScheduled()])
+  setPrefs({ templatesSeeded: true })
 }
 
 // --- OAuth refresh token: encrypted at rest by the OS, and entirely optional ---

@@ -1,6 +1,6 @@
 /* Corner-walk overlay styling (ported from Hydrate Buddy's style.css). The
-   Google-Fonts @import from the original is removed — it violates the overlay's
-   CSP and won't load offline — so we use a bundled/system monospace stack that
+   Google-Fonts @import from the original is removed - it violates the overlay's
+   CSP and won't load offline - so we use a bundled/system monospace stack that
    keeps the pixel-toy feel. */
 * {
   margin: 0;

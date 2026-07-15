@@ -3,7 +3,7 @@ import { createOverlayWindow } from './windows/overlay'
 import { openSettings } from './windows/settings'
 import { createTray } from './tray'
 import { registerIpc } from './ipc'
-import { getPrefs } from './store'
+import { getPrefs, seedDefaultReminders } from './store'
 import { startScheduler, triggerTestReminder, remindNow } from './scheduler'
 import { applyDockMode, applyAppIcon } from './platform'
 import { initAutoUpdate } from './updater'
@@ -32,7 +32,7 @@ app.on('second-instance', () => openSettings())
 app.whenReady().then(async () => {
   // Nudzie keeps a menu-bar / tray icon and stays running in the background.
   // Whether it also shows a Dock icon (regular app) or hides in the menu bar
-  // only (accessory) follows the "Show in Dock" preference — see platform.ts.
+  // only (accessory) follows the "Show in Dock" preference - see platform.ts.
   applyDockMode()
 
   registerIpc()
@@ -61,6 +61,9 @@ app.whenReady().then(async () => {
   // one). Done after the settings window exists so Windows/Linux can pick it up.
   applyAppIcon()
 
+  // First-run: seed the starter reminder templates (all disabled).
+  seedDefaultReminders()
+
   // Restore any saved calendar sessions (Google opt-in, iCloud creds), then watch.
   await calendar.init().catch(() => undefined)
   startScheduler()
@@ -72,7 +75,7 @@ app.whenReady().then(async () => {
   initAutoUpdate()
 })
 
-// Re-open the control window when the app is activated (macOS) — but ONLY when
+// Re-open the control window when the app is activated (macOS) - but ONLY when
 // there are no visible windows. Clicking the corner overlay's Accept/Snooze
 // buttons activates the app too; without this guard that would pop the settings
 // window open on every reminder. When the overlay is on screen it counts as a
@@ -83,7 +86,7 @@ app.on('activate', (_event, hasVisibleWindows) => {
 
 // Stay alive in the background even when no window is visible.
 app.on('window-all-closed', () => {
-  // Intentionally do nothing — the app lives in the tray / menu bar.
+  // Intentionally do nothing - the app lives in the tray / menu bar.
 })
 
 // Let the overlay's close handler know a real quit is underway (so it stops

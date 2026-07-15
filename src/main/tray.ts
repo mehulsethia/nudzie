@@ -56,7 +56,7 @@ function rebuild(): void {
   if (!tray || !currentHandlers) return
   const h = currentHandlers
   const paused = isPaused()
-  tray.setToolTip(paused ? 'Nudzie — paused' : 'Nudzie')
+  tray.setToolTip(paused ? 'Nudzie - paused' : 'Nudzie')
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: 'Open Nudzie', click: h.onSettings },

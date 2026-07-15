@@ -3,7 +3,7 @@ import { autoUpdater } from 'electron-updater'
 
 const CHECK_INTERVAL = 6 * 60 * 60 * 1000
 
-// Set true to make updates mandatory (no "Later" — the app restarts to update).
+// Set true to make updates mandatory (no "Later" - the app restarts to update).
 const FORCE_UPDATE = false
 
 /**
@@ -31,7 +31,7 @@ export function initAutoUpdate(): void {
           message: `Nudzie ${info.version} is ready`,
           detail: FORCE_UPDATE
             ? 'A required update has been downloaded. Nudzie will restart to update.'
-            : 'A new version has been downloaded. Restart Nudzie to update — or it will update next time you quit.'
+            : 'A new version has been downloaded. Restart Nudzie to update - or it will update next time you quit.'
         })
         .then((r) => {
           if (FORCE_UPDATE || r.response === 0) autoUpdater.quitAndInstall()

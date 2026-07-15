@@ -46,7 +46,7 @@
           <label class="check"><input id="remindAtStart" type="checkbox" /> Also nudge at the meeting's start time</label>
           <label class="check"><input id="sound" type="checkbox" /> Play a sound</label>
           <label class="check"><input id="login" type="checkbox" /> Launch at login <span class="muted small">(applies to installed builds)</span></label>
-          <label class="check"><input id="dockIcon" type="checkbox" /> Show in Dock <span class="muted small">(macOS — uncheck for menu-bar only)</span></label>
+          <label class="check"><input id="dockIcon" type="checkbox" /> Show in Dock <span class="muted small">(macOS - uncheck for menu-bar only)</span></label>
           <label class="check"><input id="stay" type="checkbox" /> Stay signed in to calendars</label>
 
           <label class="field">
@@ -55,6 +55,11 @@
               <option value="cursor">Display with the cursor</option>
               <option value="primary">Primary display</option>
             </select>
+          </label>
+
+          <label class="field">
+            <span>Snooze length (minutes, max 59)</span>
+            <input id="snoozeMinutes" type="number" min="1" max="59" />
           </label>
 
           <div class="row">
@@ -66,28 +71,13 @@
         <!-- ---------------- Reminders (interval + scheduled, clubbed) ---------------- -->
         <section class="panel" data-panel="interval">
           <h2>Reminders</h2>
-          <p class="muted">Repeating nudges and one-offs, all in one place — water and breaks on a timer, plus meds at 9 AM, a bill on the 1st, a birthday every year.</p>
+          <p class="muted">Repeating nudges and one-offs, all in one place - water and breaks on a timer, plus meds at 9 AM, a bill on the 1st, a birthday every year.</p>
 
           <ul id="rem-list" class="rem-list"></ul>
-          <p id="interval-error" class="error hidden"></p>
 
           <hr class="divider" />
 
-          <!-- Personal (interval) reminder editor — revealed when you edit that card -->
-          <div id="interval-form" class="cal-provider hidden">
-            <div class="form-title"><h3>Edit the personal reminder</h3></div>
-            <label class="check"><input id="intervalEnabled" type="checkbox" /> Enable this reminder</label>
-            <label class="field"><span>Message</span><input id="intervalMessage" type="text" /></label>
-            <div class="grid2">
-              <label class="field"><span>Active from (hour, 0–23)</span><input id="activeStart" type="number" min="0" max="23" /></label>
-              <label class="field"><span>Active until (hour, 0–23)</span><input id="activeEnd" type="number" min="0" max="23" /></label>
-              <label class="field"><span>Every (minutes)</span><input id="intervalMinutes" type="number" min="1" max="600" /></label>
-              <label class="field"><span>Snooze length (minutes, max 59)</span><input id="snoozeMinutes" type="number" min="1" max="59" /></label>
-            </div>
-            <div class="row"><button id="interval-done" class="btn btn-primary">Done</button></div>
-          </div>
-
-          <!-- Add / edit a scheduled reminder -->
+          <!-- Add / edit a reminder (interval or scheduled) -->
           <div id="sched-form" class="cal-provider">
             <div class="form-title"><h3 id="sched-form-title">Add a reminder</h3></div>
             <label class="field"><span>Title</span><input id="sch-title" type="text" placeholder="Take medicine" /></label>
@@ -95,6 +85,7 @@
             <div class="grid2">
               <label class="field"><span>Repeat</span>
                 <select id="sch-type">
+                  <option value="interval">On a timer (every N min)</option>
                   <option value="once">Once</option>
                   <option value="daily">Daily</option>
                   <option value="weekly">Weekly</option>
@@ -102,14 +93,21 @@
                   <option value="yearly">Yearly</option>
                 </select>
               </label>
-              <label class="field"><span>Time</span><input id="sch-time" type="time" value="09:00" /></label>
+              <label class="field" id="sch-time-wrap"><span>Time</span><input id="sch-time" type="time" value="09:00" /></label>
+            </div>
+            <div class="hidden" id="sch-interval-row">
+              <div class="grid2">
+                <label class="field"><span>Every (minutes)</span><input id="sch-every" type="number" min="1" max="600" value="60" /></label>
+                <label class="field"><span>Active from (hour, 0-23)</span><input id="sch-active-start" type="number" min="0" max="23" value="10" /></label>
+                <label class="field"><span>Active until (hour, 0-23)</span><input id="sch-active-end" type="number" min="0" max="23" value="19" /></label>
+              </div>
             </div>
             <label class="field hidden" id="sch-once-row"><span>Date</span><input id="sch-date" type="date" /></label>
             <div class="field hidden" id="sch-weekly-row">
               <span>Days</span>
               <div id="sch-days" class="days-row"></div>
             </div>
-            <label class="field hidden" id="sch-monthly-row"><span>Day of month (1–31)</span><input id="sch-dom" type="number" min="1" max="31" value="1" /></label>
+            <label class="field hidden" id="sch-monthly-row"><span>Day of month (1-31)</span><input id="sch-dom" type="number" min="1" max="31" value="1" /></label>
             <div class="grid2 hidden" id="sch-yearly-row">
               <label class="field"><span>Month</span><select id="sch-month"></select></label>
               <label class="field"><span>Day</span><input id="sch-yday" type="number" min="1" max="31" value="1" /></label>
@@ -125,12 +123,12 @@
         <!-- ---------------- Calendars ---------------- -->
         <section class="panel" data-panel="calendar">
           <h2>Calendar</h2>
-          <p class="muted">Read on this device only — never sent anywhere.</p>
+          <p class="muted">Read on this device only - never sent anywhere.</p>
 
           <!-- Provider picker -->
           <div id="cal-picker">
             <button id="cal-free-note" class="cal-note hidden">
-              You're on the free plan — one calendar only. <b>Go Pro</b> to add more.
+              You're on the free plan - one calendar only. <b>Go Pro</b> to add more.
             </button>
 
             <div class="provider-list">
@@ -179,7 +177,7 @@
               <ol class="steps-list">
                 <li>Google Calendar (web): your calendar → <b>Settings and sharing</b> → <b>Integrate calendar</b> → copy <b>Secret address in iCal format</b>.</li>
                 <li>Outlook / Fastmail / others: look for <b>Publish</b> or an <b>iCal/ICS</b> link.</li>
-                <li>Paste it below — add as many calendars as you like.</li>
+                <li>Paste it below - add as many calendars as you like.</li>
               </ol>
               <label class="field"><span>Calendar link</span><input id="ical-url" type="text" placeholder="https://…/basic.ics  (or webcal://…)" /></label>
               <label class="field"><span>Name (optional)</span><input id="ical-name" type="text" placeholder="Work" /></label>
@@ -219,7 +217,7 @@
             <h3>Connect Google Calendar</h3>
             <div class="cal-provider">
               <strong>Sign in with Google</strong>
-              <p class="muted small">Reads your <b>primary</b> Google calendar, on this device only. Requires OAuth credentials — add <code>oauth-credentials.json</code> (see README) before connecting.</p>
+              <p class="muted small">Reads your <b>primary</b> Google calendar, on this device only. Requires OAuth credentials - add <code>oauth-credentials.json</code> (see README) before connecting.</p>
               <div class="row">
                 <button id="g-connect" class="btn btn-primary">Connect Google</button>
                 <button id="g-disconnect" class="btn btn-outline hidden">Disconnect</button>
@@ -250,11 +248,11 @@
                      then the action pose <em>in the same chat</em> so the tool matches the character.</p>
                   <ol>
                     <li>
-                      <strong>Idle pose</strong> — standing, holding a water bottle.
+                      <strong>Idle pose</strong> - standing, holding a water bottle.
                       <button class="btn btn-outline btn-sm" id="copy-idle-prompt">Copy prompt</button>
                     </li>
                     <li>
-                      <strong>Action pose</strong> — drinking from the bottle.
+                      <strong>Action pose</strong> - drinking from the bottle.
                       <button class="btn btn-outline btn-sm" id="copy-action-prompt">Copy prompt</button>
                     </li>
                   </ol>
@@ -298,7 +296,7 @@
               <button id="buy-btn" class="btn btn-outline">Get Nudzie Pro</button>
             </div>
             <p id="license-error" class="error hidden"></p>
-            <p class="muted small">Note: the license backend is a stub in this build — activation is disabled and Nudzie runs as the free tier. See PRO-TIER.md.</p>
+            <p class="muted small">Note: the license backend is a stub in this build - activation is disabled and Nudzie runs as the free tier. See PRO-TIER.md.</p>
           </div>
 
           <div id="license-active" class="hidden">

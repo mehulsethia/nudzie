@@ -6,9 +6,9 @@ const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) 
 
 // Copy-paste AI prompts for "make your own character".
 const IDLE_PROMPT =
-  'Full-body pixel-art character, front view, standing and smiling. [DESCRIBE YOUR CHARACTER — e.g. a young man with short black hair, round glasses, a navy hoodie and grey joggers, brown sneakers]. They are holding a reusable water bottle in one hand, down at their side. Clean, detailed pixel-art style with soft shading; friendly and wholesome. Plain solid pale-blue background, a subtle soft shadow under the feet, the character centered with empty space all around. No text, no frame, no border.'
+  'Full-body pixel-art character, front view, standing and smiling. [DESCRIBE YOUR CHARACTER - e.g. a young man with short black hair, round glasses, a navy hoodie and grey joggers, brown sneakers]. They are holding a reusable water bottle in one hand, down at their side. Clean, detailed pixel-art style with soft shading; friendly and wholesome. Plain solid pale-blue background, a subtle soft shadow under the feet, the character centered with empty space all around. No text, no frame, no border.'
 const ACTION_PROMPT =
-  'Using the previous image as the reference, keep the exact same character — same face, hairstyle, glasses, outfit, colours, art style and proportions. Now show them tilting their head back and drinking from the same water bottle, seen from the side. Same clean pixel-art style, same plain solid pale-blue background, same soft shadow under the feet. Full body, centered, with empty space around them. No text, no frame, no border.'
+  'Using the previous image as the reference, keep the exact same character - same face, hairstyle, glasses, outfit, colours, art style and proportions. Now show them tilting their head back and drinking from the same water bottle, seen from the side. Same clean pixel-art style, same plain solid pale-blue background, same soft shadow under the feet. Full body, centered, with empty space around them. No text, no frame, no border.'
 
 // A placeholder checkout URL. The license backend is stubbed in this build; swap
 // this (and wire up license.ts) when you connect a real payment provider.
@@ -66,60 +66,29 @@ $<HTMLButtonElement>('test-btn').addEventListener('click', () => void q.testRemi
 $<HTMLButtonElement>('now-btn').addEventListener('click', () => void q.remindNow())
 $<HTMLButtonElement>('side-test-btn').addEventListener('click', () => void q.testReminder())
 
-// ---- Interval ----
-const intervalEnabled = $<HTMLInputElement>('intervalEnabled')
-const intervalMessage = $<HTMLInputElement>('intervalMessage')
-const activeStart = $<HTMLInputElement>('activeStart')
-const activeEnd = $<HTMLInputElement>('activeEnd')
-const intervalMinutes = $<HTMLInputElement>('intervalMinutes')
+// ---- Snooze length (global, applies to every reminder) ----
 const snoozeMinutes = $<HTMLInputElement>('snoozeMinutes')
 
-intervalEnabled.addEventListener('change', async () => {
-  prefs = await q.setPrefs({ intervalEnabled: intervalEnabled.checked })
-  renderReminders()
-})
-intervalMessage.addEventListener('change', async () => {
-  prefs = await q.setPrefs({ intervalMessage: intervalMessage.value })
-  renderReminders()
-})
-const intervalError = document.getElementById('interval-error') as HTMLElement
-async function commitActiveHours(): Promise<void> {
-  const start = clampHour(activeStart.value)
-  const end = clampHour(activeEnd.value)
-  // Overnight windows (start >= end) aren't supported — the interval scheduler
-  // would silently never fire. Reject and revert to the last saved values.
-  if (start >= end) {
-    intervalError.textContent =
-      'Active "from" must be earlier than "until" (overnight ranges aren’t supported yet).'
-    intervalError.classList.remove('hidden')
-    activeStart.value = String(prefs.activeStartHour)
-    activeEnd.value = String(prefs.activeEndHour)
-    return
-  }
-  intervalError.classList.add('hidden')
-  prefs = await q.setPrefs({ activeStartHour: start, activeEndHour: end })
-  renderReminders()
-}
-activeStart.addEventListener('change', () => void commitActiveHours())
-activeEnd.addEventListener('change', () => void commitActiveHours())
-
-// ---- Reminders (interval "personal" reminder + scheduled once/daily/…) ----
+// ---- Reminders (interval + scheduled, one unified list) ----
 const remList = $<HTMLUListElement>('rem-list')
-const intervalForm = $('interval-form')
 const schedForm = $('sched-form')
 const schFormTitle = $('sched-form-title')
 const schCancel = $<HTMLButtonElement>('sch-cancel')
-const intervalDone = $<HTMLButtonElement>('interval-done')
 let scheduledCache: ScheduledReminder[] = []
-let editingId: string | null = null // scheduled reminder currently being edited
+let editingId: string | null = null // reminder currently being edited
 const schTitle = $<HTMLInputElement>('sch-title')
 const schMessage = $<HTMLInputElement>('sch-message')
 const schType = $<HTMLSelectElement>('sch-type')
 const schTime = $<HTMLInputElement>('sch-time')
+const schTimeWrap = $('sch-time-wrap')
 const schDate = $<HTMLInputElement>('sch-date')
 const schDom = $<HTMLInputElement>('sch-dom')
 const schMonth = $<HTMLSelectElement>('sch-month')
 const schYDay = $<HTMLInputElement>('sch-yday')
+const schEvery = $<HTMLInputElement>('sch-every')
+const schActiveStart = $<HTMLInputElement>('sch-active-start')
+const schActiveEnd = $<HTMLInputElement>('sch-active-end')
+const rowInterval = $('sch-interval-row')
 const schAdd = $<HTMLButtonElement>('sch-add')
 const schError = document.getElementById('sch-error') as HTMLElement
 const schDaysEl = $('sch-days')
@@ -161,19 +130,28 @@ function updateSchRows(): void {
   rowWeekly.classList.toggle('hidden', t !== 'weekly')
   rowMonthly.classList.toggle('hidden', t !== 'monthly')
   rowYearly.classList.toggle('hidden', t !== 'yearly')
+  rowInterval.classList.toggle('hidden', t !== 'interval')
+  schTimeWrap.classList.toggle('hidden', t === 'interval') // interval has no clock time
 }
 schType.addEventListener('change', updateSchRows)
+
+const pad2 = (n: number): string => String(n).padStart(2, '0')
 
 function describeSchedule(s: Schedule): string {
   const t = s.time
   switch (s.type) {
+    case 'interval': {
+      const start = s.activeStartHour ?? 0
+      const end = s.activeEndHour ?? 24
+      return `Every ${s.everyMinutes ?? 60} min · active ${pad2(start)}:00-${pad2(end)}:00`
+    }
     case 'once':
       return `Once · ${s.date ?? ''} at ${t}`
     case 'daily':
       return `Daily at ${t}`
     case 'weekly': {
       const names = (s.days ?? []).slice().sort().map((d) => DAY_NAMES[d]).join(', ')
-      return `Weekly on ${names || '—'} at ${t}`
+      return `Weekly on ${names || '-'} at ${t}`
     }
     case 'monthly':
       return `Monthly on day ${s.dayOfMonth ?? 1} at ${t}`
@@ -181,8 +159,6 @@ function describeSchedule(s: Schedule): string {
       return `Yearly on ${MONTH_NAMES[(s.month ?? 1) - 1]} ${s.day ?? 1} at ${t}`
   }
 }
-
-const pad2 = (n: number): string => String(n).padStart(2, '0')
 
 /** A pixel-style on/off toggle switch. */
 function makeSwitch(checked: boolean, onChange: (on: boolean) => void): HTMLElement {
@@ -207,39 +183,7 @@ function smallBtn(text: string, onClick: () => void): HTMLButtonElement {
   return b
 }
 
-/** The interval "personal" reminder, shown as the first card in the list. */
-function intervalCard(): HTMLElement {
-  const li = document.createElement('li')
-  li.className = 'rem-item interval' + (prefs.intervalEnabled ? '' : ' off')
-
-  const meta = document.createElement('div')
-  meta.className = 'rem-meta'
-  const tag = document.createElement('span')
-  tag.className = 'rem-tag'
-  tag.textContent = 'ON A TIMER'
-  const title = document.createElement('span')
-  title.className = 'rem-title'
-  title.textContent = prefs.intervalMessage || 'Personal reminder'
-  const desc = document.createElement('span')
-  desc.className = 'rem-desc'
-  desc.textContent = `Every ${prefs.intervalMinutes} min · active ${pad2(prefs.activeStartHour)}:00–${pad2(prefs.activeEndHour)}:00`
-  meta.append(tag, title, desc)
-
-  const actions = document.createElement('div')
-  actions.className = 'item-actions'
-  actions.append(
-    makeSwitch(prefs.intervalEnabled, async (on) => {
-      prefs = await q.setPrefs({ intervalEnabled: on })
-      renderReminders()
-    }),
-    smallBtn('Edit', openIntervalForm)
-  )
-
-  li.append(meta, actions)
-  return li
-}
-
-/** One scheduled reminder card. */
+/** One reminder card (interval or scheduled - all uniform now). */
 function scheduledCard(r: ScheduledReminder): HTMLElement {
   const li = document.createElement('li')
   li.className = 'rem-item' + (r.enabled ? '' : ' off') + (editingId === r.id ? ' editing' : '')
@@ -273,44 +217,34 @@ function scheduledCard(r: ScheduledReminder): HTMLElement {
   return li
 }
 
-/** Rebuild the unified list: the interval reminder, then the scheduled ones. */
+/** Rebuild the unified reminders list. */
 function renderReminders(): void {
   remList.innerHTML = ''
-  remList.append(intervalCard())
+  if (scheduledCache.length === 0) {
+    const li = document.createElement('li')
+    li.className = 'muted small'
+    li.textContent = 'No reminders yet. Add one below.'
+    remList.append(li)
+    return
+  }
   for (const r of scheduledCache) remList.append(scheduledCard(r))
 }
 
-// ---- Interval reminder editor (revealed from its card) ----
-function openIntervalForm(): void {
-  // Sync the form fields from the current prefs before showing it.
-  intervalEnabled.checked = prefs.intervalEnabled
-  intervalMessage.value = prefs.intervalMessage
-  activeStart.value = String(prefs.activeStartHour)
-  activeEnd.value = String(prefs.activeEndHour)
-  intervalMinutes.value = String(prefs.intervalMinutes)
-  snoozeMinutes.value = String(prefs.snoozeMinutes)
-  intervalForm.classList.remove('hidden')
-  schedForm.classList.add('hidden')
-  intervalForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-}
-intervalDone.addEventListener('click', () => {
-  intervalForm.classList.add('hidden')
-  schedForm.classList.remove('hidden')
-  renderReminders()
-})
-
-// ---- Scheduled reminder: edit vs add ----
+// ---- Reminder form: edit vs add ----
 function loadSchedIntoForm(r: ScheduledReminder): void {
   editingId = r.id
   const s = r.schedule
   schTitle.value = r.title
   schMessage.value = r.message ?? ''
   schType.value = s.type
-  schTime.value = s.time || '09:00'
+  schTime.value = s.type === 'interval' ? '09:00' : s.time || '09:00'
   schDate.value = s.type === 'once' ? (s.date ?? '') : ''
   schDom.value = String(s.type === 'monthly' ? (s.dayOfMonth ?? 1) : 1)
   schMonth.value = String(s.type === 'yearly' ? (s.month ?? 1) : 1)
   schYDay.value = String(s.type === 'yearly' ? (s.day ?? 1) : 1)
+  schEvery.value = String(s.type === 'interval' ? (s.everyMinutes ?? 60) : 60)
+  schActiveStart.value = String(s.type === 'interval' ? (s.activeStartHour ?? 10) : 10)
+  schActiveEnd.value = String(s.type === 'interval' ? (s.activeEndHour ?? 19) : 19)
   selectedDays.clear()
   Array.from(schDaysEl.children).forEach((el, i) => {
     const on = s.type === 'weekly' && (s.days ?? []).includes(i)
@@ -322,8 +256,6 @@ function loadSchedIntoForm(r: ScheduledReminder): void {
   schFormTitle.textContent = 'Edit reminder'
   schAdd.textContent = 'Save changes'
   schCancel.classList.remove('hidden')
-  intervalForm.classList.add('hidden')
-  schedForm.classList.remove('hidden')
   renderReminders() // reflect the "editing" highlight
   schedForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
 }
@@ -338,6 +270,9 @@ function resetSchedForm(): void {
   schDom.value = '1'
   schMonth.value = '1'
   schYDay.value = '1'
+  schEvery.value = '60'
+  schActiveStart.value = '10'
+  schActiveEnd.value = '19'
   selectedDays.clear()
   Array.from(schDaysEl.children).forEach((el) => el.classList.remove('on'))
   updateSchRows()
@@ -357,7 +292,15 @@ schAdd.addEventListener('click', async () => {
   if (!title) return fail('Give your reminder a title.')
 
   const schedule: Schedule = { type, time }
-  if (type === 'once') {
+  if (type === 'interval') {
+    const start = clampHour(schActiveStart.value)
+    const end = clampHour(schActiveEnd.value)
+    if (start >= end) return fail('Active "from" must be earlier than "until".')
+    schedule.everyMinutes = Math.max(1, Math.min(600, Number(schEvery.value) || 60))
+    schedule.activeStartHour = start
+    schedule.activeEndHour = end
+    schedule.time = ''
+  } else if (type === 'once') {
     if (!schDate.value) return fail('Pick a date for a one-off reminder.')
     schedule.date = schDate.value
   } else if (type === 'weekly') {
@@ -393,10 +336,6 @@ schAdd.addEventListener('click', async () => {
     schError.textContent = msg
     schError.classList.remove('hidden')
   }
-})
-intervalMinutes.addEventListener('change', async () => {
-  prefs = await q.setPrefs({ intervalMinutes: Math.max(1, Number(intervalMinutes.value)) })
-  renderReminders()
 })
 snoozeMinutes.addEventListener('change', async () => {
   const v = Math.max(1, Math.min(59, Number(snoozeMinutes.value) || 1))
@@ -507,7 +446,7 @@ async function onUpload(input: HTMLInputElement, target: HTMLElement, which: 'id
   }
   if (file.size > MAX_UPLOAD_BYTES) {
     const mb = (file.size / (1024 * 1024)).toFixed(1)
-    customError.textContent = `That image is ${mb} MB — please use one under 5 MB.`
+    customError.textContent = `That image is ${mb} MB - please use one under 5 MB.`
     show(customError)
     input.value = ''
     return
@@ -805,7 +744,7 @@ function renderLicense(s: LicenseStatus): void {
   calFreeNote.classList.toggle('hidden', s.premium) // "one calendar only" note
   licenseLine.textContent = s.premium
     ? `Thanks for supporting Nudzie! Key ${s.keyMasked ?? ''}`
-    : 'Unlock extra characters, sounds and themes — and support the project.'
+    : 'Unlock extra characters, sounds and themes - and support the project.'
   renderCharacters()
 }
 
@@ -837,11 +776,6 @@ function fillPrefs(p: Prefs): void {
   dockIcon.checked = p.dockIcon
   stay.checked = p.staySignedIn
   display.value = p.targetDisplay
-  intervalEnabled.checked = p.intervalEnabled
-  intervalMessage.value = p.intervalMessage
-  activeStart.value = String(p.activeStartHour)
-  activeEnd.value = String(p.activeEndHour)
-  intervalMinutes.value = String(p.intervalMinutes)
   snoozeMinutes.value = String(p.snoozeMinutes)
   // Make sure the selected character still exists (falls back to default).
   prefs.character = characterById(p.character).id
