@@ -74,12 +74,14 @@ const activeEnd = $<HTMLInputElement>('activeEnd')
 const intervalMinutes = $<HTMLInputElement>('intervalMinutes')
 const snoozeMinutes = $<HTMLInputElement>('snoozeMinutes')
 
-intervalEnabled.addEventListener('change', () =>
-  void q.setPrefs({ intervalEnabled: intervalEnabled.checked })
-)
-intervalMessage.addEventListener('change', () =>
-  void q.setPrefs({ intervalMessage: intervalMessage.value })
-)
+intervalEnabled.addEventListener('change', async () => {
+  prefs = await q.setPrefs({ intervalEnabled: intervalEnabled.checked })
+  renderReminders()
+})
+intervalMessage.addEventListener('change', async () => {
+  prefs = await q.setPrefs({ intervalMessage: intervalMessage.value })
+  renderReminders()
+})
 const intervalError = document.getElementById('interval-error') as HTMLElement
 async function commitActiveHours(): Promise<void> {
   const start = clampHour(activeStart.value)
@@ -96,12 +98,20 @@ async function commitActiveHours(): Promise<void> {
   }
   intervalError.classList.add('hidden')
   prefs = await q.setPrefs({ activeStartHour: start, activeEndHour: end })
+  renderReminders()
 }
 activeStart.addEventListener('change', () => void commitActiveHours())
 activeEnd.addEventListener('change', () => void commitActiveHours())
 
-// ---- Scheduled reminders (once/daily/weekly/monthly/yearly) ----
-const schList = $<HTMLUListElement>('scheduled-list')
+// ---- Reminders (interval "personal" reminder + scheduled once/daily/…) ----
+const remList = $<HTMLUListElement>('rem-list')
+const intervalForm = $('interval-form')
+const schedForm = $('sched-form')
+const schFormTitle = $('sched-form-title')
+const schCancel = $<HTMLButtonElement>('sch-cancel')
+const intervalDone = $<HTMLButtonElement>('interval-done')
+let scheduledCache: ScheduledReminder[] = []
+let editingId: string | null = null // scheduled reminder currently being edited
 const schTitle = $<HTMLInputElement>('sch-title')
 const schMessage = $<HTMLInputElement>('sch-message')
 const schType = $<HTMLSelectElement>('sch-type')
@@ -172,48 +182,172 @@ function describeSchedule(s: Schedule): string {
   }
 }
 
-function renderScheduled(list: ScheduledReminder[]): void {
-  schList.innerHTML = ''
-  if (list.length === 0) {
-    const li = document.createElement('li')
-    li.className = 'muted small'
-    li.textContent = 'No scheduled reminders yet.'
-    schList.append(li)
-    return
-  }
-  for (const r of list) {
-    const li = document.createElement('li')
-    li.className = 'sched-item'
-    const meta = document.createElement('div')
-    meta.className = 'sched-meta'
-    const title = document.createElement('span')
-    title.className = 'sched-title'
-    title.textContent = r.title
-    const desc = document.createElement('span')
-    desc.className = 'sched-desc'
-    desc.textContent = describeSchedule(r.schedule)
-    meta.append(title, desc)
+const pad2 = (n: number): string => String(n).padStart(2, '0')
 
-    const toggle = document.createElement('input')
-    toggle.type = 'checkbox'
-    toggle.checked = r.enabled
-    toggle.title = 'Enabled'
-    toggle.addEventListener('change', async () => {
-      renderScheduled(await q.scheduledSetEnabled(r.id, toggle.checked))
-    })
-
-    const rm = document.createElement('button')
-    rm.className = 'btn btn-outline btn-sm'
-    rm.textContent = 'Remove'
-    rm.addEventListener('click', async () => {
-      renderScheduled(await q.scheduledRemove(r.id))
-    })
-
-    li.append(meta, toggle, rm)
-    if (!r.enabled) li.classList.add('off')
-    schList.append(li)
-  }
+/** A pixel-style on/off toggle switch. */
+function makeSwitch(checked: boolean, onChange: (on: boolean) => void): HTMLElement {
+  const label = document.createElement('label')
+  label.className = 'switch'
+  label.title = 'Enabled'
+  const input = document.createElement('input')
+  input.type = 'checkbox'
+  input.checked = checked
+  const track = document.createElement('span')
+  track.className = 'track'
+  input.addEventListener('change', () => onChange(input.checked))
+  label.append(input, track)
+  return label
 }
+
+function smallBtn(text: string, onClick: () => void): HTMLButtonElement {
+  const b = document.createElement('button')
+  b.className = 'btn btn-outline btn-sm'
+  b.textContent = text
+  b.addEventListener('click', onClick)
+  return b
+}
+
+/** The interval "personal" reminder, shown as the first card in the list. */
+function intervalCard(): HTMLElement {
+  const li = document.createElement('li')
+  li.className = 'rem-item interval' + (prefs.intervalEnabled ? '' : ' off')
+
+  const meta = document.createElement('div')
+  meta.className = 'rem-meta'
+  const tag = document.createElement('span')
+  tag.className = 'rem-tag'
+  tag.textContent = 'ON A TIMER'
+  const title = document.createElement('span')
+  title.className = 'rem-title'
+  title.textContent = prefs.intervalMessage || 'Personal reminder'
+  const desc = document.createElement('span')
+  desc.className = 'rem-desc'
+  desc.textContent = `Every ${prefs.intervalMinutes} min · active ${pad2(prefs.activeStartHour)}:00–${pad2(prefs.activeEndHour)}:00`
+  meta.append(tag, title, desc)
+
+  const actions = document.createElement('div')
+  actions.className = 'item-actions'
+  actions.append(
+    makeSwitch(prefs.intervalEnabled, async (on) => {
+      prefs = await q.setPrefs({ intervalEnabled: on })
+      renderReminders()
+    }),
+    smallBtn('Edit', openIntervalForm)
+  )
+
+  li.append(meta, actions)
+  return li
+}
+
+/** One scheduled reminder card. */
+function scheduledCard(r: ScheduledReminder): HTMLElement {
+  const li = document.createElement('li')
+  li.className = 'rem-item' + (r.enabled ? '' : ' off') + (editingId === r.id ? ' editing' : '')
+
+  const meta = document.createElement('div')
+  meta.className = 'rem-meta'
+  const title = document.createElement('span')
+  title.className = 'rem-title'
+  title.textContent = r.title
+  const desc = document.createElement('span')
+  desc.className = 'rem-desc'
+  desc.textContent = describeSchedule(r.schedule)
+  meta.append(title, desc)
+
+  const actions = document.createElement('div')
+  actions.className = 'item-actions'
+  actions.append(
+    makeSwitch(r.enabled, async (on) => {
+      scheduledCache = await q.scheduledSetEnabled(r.id, on)
+      renderReminders()
+    }),
+    smallBtn('Edit', () => loadSchedIntoForm(r)),
+    smallBtn('Remove', async () => {
+      scheduledCache = await q.scheduledRemove(r.id)
+      if (editingId === r.id) resetSchedForm()
+      renderReminders()
+    })
+  )
+
+  li.append(meta, actions)
+  return li
+}
+
+/** Rebuild the unified list: the interval reminder, then the scheduled ones. */
+function renderReminders(): void {
+  remList.innerHTML = ''
+  remList.append(intervalCard())
+  for (const r of scheduledCache) remList.append(scheduledCard(r))
+}
+
+// ---- Interval reminder editor (revealed from its card) ----
+function openIntervalForm(): void {
+  // Sync the form fields from the current prefs before showing it.
+  intervalEnabled.checked = prefs.intervalEnabled
+  intervalMessage.value = prefs.intervalMessage
+  activeStart.value = String(prefs.activeStartHour)
+  activeEnd.value = String(prefs.activeEndHour)
+  intervalMinutes.value = String(prefs.intervalMinutes)
+  snoozeMinutes.value = String(prefs.snoozeMinutes)
+  intervalForm.classList.remove('hidden')
+  schedForm.classList.add('hidden')
+  intervalForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+}
+intervalDone.addEventListener('click', () => {
+  intervalForm.classList.add('hidden')
+  schedForm.classList.remove('hidden')
+  renderReminders()
+})
+
+// ---- Scheduled reminder: edit vs add ----
+function loadSchedIntoForm(r: ScheduledReminder): void {
+  editingId = r.id
+  const s = r.schedule
+  schTitle.value = r.title
+  schMessage.value = r.message ?? ''
+  schType.value = s.type
+  schTime.value = s.time || '09:00'
+  schDate.value = s.type === 'once' ? (s.date ?? '') : ''
+  schDom.value = String(s.type === 'monthly' ? (s.dayOfMonth ?? 1) : 1)
+  schMonth.value = String(s.type === 'yearly' ? (s.month ?? 1) : 1)
+  schYDay.value = String(s.type === 'yearly' ? (s.day ?? 1) : 1)
+  selectedDays.clear()
+  Array.from(schDaysEl.children).forEach((el, i) => {
+    const on = s.type === 'weekly' && (s.days ?? []).includes(i)
+    el.classList.toggle('on', on)
+    if (on) selectedDays.add(i)
+  })
+  updateSchRows()
+  hide(schError)
+  schFormTitle.textContent = 'Edit reminder'
+  schAdd.textContent = 'Save changes'
+  schCancel.classList.remove('hidden')
+  intervalForm.classList.add('hidden')
+  schedForm.classList.remove('hidden')
+  renderReminders() // reflect the "editing" highlight
+  schedForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+}
+
+function resetSchedForm(): void {
+  editingId = null
+  schTitle.value = ''
+  schMessage.value = ''
+  schType.value = 'once'
+  schTime.value = '09:00'
+  schDate.value = ''
+  schDom.value = '1'
+  schMonth.value = '1'
+  schYDay.value = '1'
+  selectedDays.clear()
+  Array.from(schDaysEl.children).forEach((el) => el.classList.remove('on'))
+  updateSchRows()
+  hide(schError)
+  schFormTitle.textContent = 'Add a reminder'
+  schAdd.textContent = 'Add reminder'
+  schCancel.classList.add('hidden')
+  renderReminders()
+}
+schCancel.addEventListener('click', resetSchedForm)
 
 schAdd.addEventListener('click', async () => {
   schError.classList.add('hidden')
@@ -238,10 +372,19 @@ schAdd.addEventListener('click', async () => {
 
   schAdd.disabled = true
   try {
-    renderScheduled(await q.scheduledAdd({ title, message: schMessage.value.trim(), schedule }))
-    // Reset the simple fields.
-    schTitle.value = ''
-    schMessage.value = ''
+    // Editing = replace the old entry (no backend "update", so remove + re-add),
+    // preserving its enabled state.
+    let wasEnabled = true
+    if (editingId) {
+      wasEnabled = scheduledCache.find((x) => x.id === editingId)?.enabled ?? true
+      await q.scheduledRemove(editingId)
+    }
+    scheduledCache = await q.scheduledAdd({ title, message: schMessage.value.trim(), schedule })
+    if (!wasEnabled) {
+      const added = scheduledCache[scheduledCache.length - 1]
+      if (added) scheduledCache = await q.scheduledSetEnabled(added.id, false)
+    }
+    resetSchedForm() // clears fields, exits edit mode, re-renders the list
   } finally {
     schAdd.disabled = false
   }
@@ -251,13 +394,14 @@ schAdd.addEventListener('click', async () => {
     schError.classList.remove('hidden')
   }
 })
-intervalMinutes.addEventListener('change', () =>
-  void q.setPrefs({ intervalMinutes: Math.max(1, Number(intervalMinutes.value)) })
-)
-snoozeMinutes.addEventListener('change', () => {
+intervalMinutes.addEventListener('change', async () => {
+  prefs = await q.setPrefs({ intervalMinutes: Math.max(1, Number(intervalMinutes.value)) })
+  renderReminders()
+})
+snoozeMinutes.addEventListener('change', async () => {
   const v = Math.max(1, Math.min(59, Number(snoozeMinutes.value) || 1))
   snoozeMinutes.value = String(v) // reflect the clamp back into the field
-  void q.setPrefs({ snoozeMinutes: v })
+  prefs = await q.setPrefs({ snoozeMinutes: v })
 })
 const clampHour = (v: string): number => Math.max(0, Math.min(23, Number(v) || 0))
 
@@ -702,6 +846,7 @@ function fillPrefs(p: Prefs): void {
   // Make sure the selected character still exists (falls back to default).
   prefs.character = characterById(p.character).id
   renderCharacters()
+  renderReminders()
 }
 
 void (async () => {
@@ -709,7 +854,8 @@ void (async () => {
   renderLicense(await q.licenseStatus())
   await initCustom()
   updateSchRows()
-  renderScheduled(await q.scheduledList())
+  scheduledCache = await q.scheduledList()
+  renderReminders()
   showPicker()
   await refreshCalendar()
 })()

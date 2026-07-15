@@ -12,9 +12,9 @@
   <body>
     <div id="app">
       <nav id="nav">
-        <div class="brand">Nudzie <span id="plan-badge" class="badge free">Free</span></div>
+        <div class="brand"><img class="logo" src="./logo.png" alt="" />Nudzie <span id="plan-badge" class="badge free">Free</span></div>
         <button class="nav-item active" data-tab="general">General</button>
-        <button class="nav-item" data-tab="interval">Personal reminders</button>
+        <button class="nav-item" data-tab="interval">Reminders</button>
         <button class="nav-item" data-tab="calendar">Calendars</button>
         <button class="nav-item" data-tab="character">Character</button>
         <button class="nav-item" data-tab="pro">Pro</button>
@@ -63,34 +63,33 @@
           </div>
         </section>
 
-        <!-- ---------------- Personal / interval ---------------- -->
+        <!-- ---------------- Reminders (interval + scheduled, clubbed) ---------------- -->
         <section class="panel" data-panel="interval">
-          <h2>Personal reminders</h2>
-          <p class="muted">Interval nudges for things like water and breaks — independent of your calendar. Active hours use your computer's local time.</p>
+          <h2>Reminders</h2>
+          <p class="muted">Repeating nudges and one-offs, all in one place — water and breaks on a timer, plus meds at 9 AM, a bill on the 1st, a birthday every year.</p>
 
-          <label class="check"><input id="intervalEnabled" type="checkbox" /> Enable personal reminders</label>
-
-          <label class="field">
-            <span>Message</span>
-            <input id="intervalMessage" type="text" />
-          </label>
-
-          <div class="grid2">
-            <label class="field"><span>Active from (hour, 0–23)</span><input id="activeStart" type="number" min="0" max="23" /></label>
-            <label class="field"><span>Active until (hour, 0–23)</span><input id="activeEnd" type="number" min="0" max="23" /></label>
-            <label class="field"><span>Every (minutes)</span><input id="intervalMinutes" type="number" min="1" max="600" /></label>
-            <label class="field"><span>Snooze length (minutes, max 59)</span><input id="snoozeMinutes" type="number" min="1" max="59" /></label>
-          </div>
+          <ul id="rem-list" class="rem-list"></ul>
           <p id="interval-error" class="error hidden"></p>
 
           <hr class="divider" />
-          <h3>Scheduled reminders</h3>
-          <p class="muted small">One-off or recurring nudges at specific times — e.g. meds at 9 AM, a bill on the 1st, a birthday every year.</p>
 
-          <ul id="scheduled-list" class="sched-list"></ul>
+          <!-- Personal (interval) reminder editor — revealed when you edit that card -->
+          <div id="interval-form" class="cal-provider hidden">
+            <div class="form-title"><h3>Edit the personal reminder</h3></div>
+            <label class="check"><input id="intervalEnabled" type="checkbox" /> Enable this reminder</label>
+            <label class="field"><span>Message</span><input id="intervalMessage" type="text" /></label>
+            <div class="grid2">
+              <label class="field"><span>Active from (hour, 0–23)</span><input id="activeStart" type="number" min="0" max="23" /></label>
+              <label class="field"><span>Active until (hour, 0–23)</span><input id="activeEnd" type="number" min="0" max="23" /></label>
+              <label class="field"><span>Every (minutes)</span><input id="intervalMinutes" type="number" min="1" max="600" /></label>
+              <label class="field"><span>Snooze length (minutes, max 59)</span><input id="snoozeMinutes" type="number" min="1" max="59" /></label>
+            </div>
+            <div class="row"><button id="interval-done" class="btn btn-primary">Done</button></div>
+          </div>
 
-          <div class="cal-provider">
-            <strong>Add a scheduled reminder</strong>
+          <!-- Add / edit a scheduled reminder -->
+          <div id="sched-form" class="cal-provider">
+            <div class="form-title"><h3 id="sched-form-title">Add a reminder</h3></div>
             <label class="field"><span>Title</span><input id="sch-title" type="text" placeholder="Take medicine" /></label>
             <label class="field"><span>Message (optional)</span><input id="sch-message" type="text" placeholder="Time for your meds 💊" /></label>
             <div class="grid2">
@@ -115,7 +114,10 @@
               <label class="field"><span>Month</span><select id="sch-month"></select></label>
               <label class="field"><span>Day</span><input id="sch-yday" type="number" min="1" max="31" value="1" /></label>
             </div>
-            <div class="row"><button id="sch-add" class="btn btn-primary">Add reminder</button></div>
+            <div class="row">
+              <button id="sch-add" class="btn btn-primary">Add reminder</button>
+              <button id="sch-cancel" class="btn btn-outline hidden">Cancel</button>
+            </div>
             <p id="sch-error" class="error hidden"></p>
           </div>
         </section>
