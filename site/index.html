@@ -192,23 +192,23 @@ nav{position:sticky;top:0;z-index:50;
 /* the actor = a small full-body buddy in the BOTTOM-LEFT corner (like a real
    screen corner) with the speech bubble stacked above its head. Walks in from
    the left edge. */
-.actor{position:absolute;left:34px;bottom:0;
-  display:flex;flex-direction:column;align-items:flex-start;
+.actor{position:absolute;right:34px;bottom:0;
+  display:flex;flex-direction:column;align-items:flex-end;
   transform:translateX(0);animation:walkin 9s ease-in-out infinite;}
 .buddy{width:100px;height:auto;image-rendering:pixelated;
   filter:drop-shadow(0 6px 5px rgba(0,0,0,.28));animation:bob 2.6s ease-in-out infinite;}
-@keyframes walkin{0%{transform:translateX(-175%)}15%{transform:translateX(0)}82%{transform:translateX(0)}100%{transform:translateX(-175%)}}
+@keyframes walkin{0%{transform:translateX(175%)}15%{transform:translateX(0)}82%{transform:translateX(0)}100%{transform:translateX(175%)}}
 @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
 
 /* bubble sits above the head, tail pointing DOWN at the buddy - same read as the app icon */
 .pop{position:relative;width:270px;max-width:74%;margin-bottom:14px;
   background:var(--bubble);border:4px solid var(--border);border-radius:16px;
   box-shadow:var(--hard);padding:14px 15px 12px;
-  transform-origin:50px 100%;transform:scale(1);
+  transform-origin:calc(100% - 50px) 100%;transform:scale(1);
   animation:popcycle 9s ease-in-out infinite;}
-.pop::after{content:"";position:absolute;left:50px;bottom:-18px;transform:translateX(-50%);
+.pop::after{content:"";position:absolute;right:50px;bottom:-18px;transform:translateX(50%);
   width:0;height:0;border-left:13px solid transparent;border-right:13px solid transparent;border-top:19px solid var(--border);}
-.pop::before{content:"";position:absolute;left:50px;bottom:-10px;transform:translateX(-50%);z-index:1;
+.pop::before{content:"";position:absolute;right:50px;bottom:-10px;transform:translateX(50%);z-index:1;
   width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-top:13px solid var(--bubble);}
 @keyframes popcycle{0%,17%{transform:scale(0)}22%{transform:scale(1.05)}25%,78%{transform:scale(1)}83%,100%{transform:scale(0)}}
 .pop .who{font-family:'Pixelify Sans';font-size:.72rem;color:var(--bubble-muted);margin-bottom:5px;display:flex;align-items:center;justify-content:center;gap:6px}
@@ -256,12 +256,12 @@ nav{position:sticky;top:0;z-index:50;
 /* ---------- builder ---------- */
 .builder{background:var(--bubble);border:4px solid var(--border);border-radius:24px;box-shadow:10px 10px 0 var(--shadow);padding:26px;display:grid;grid-template-columns:1fr 1fr;gap:28px}
 .builder .preview{background:linear-gradient(180deg,color-mix(in srgb,var(--grape) 17%,var(--bubble)),color-mix(in srgb,var(--grape) 4%,var(--bubble)));border:3px solid var(--border);border-radius:16px;position:relative;overflow:hidden;min-height:320px}
-.builder .preview .pv-buddy{position:absolute;left:24px;bottom:-4px;width:92px;image-rendering:pixelated;filter:drop-shadow(0 5px 4px rgba(0,0,0,.25));transition:transform .3s}
+.builder .preview .pv-buddy{position:absolute;right:24px;bottom:-4px;width:92px;image-rendering:pixelated;filter:drop-shadow(0 5px 4px rgba(0,0,0,.25));transition:transform .3s}
 .builder .preview.playing .pv-buddy{animation:hop 1.2s ease}
-@keyframes hop{0%{transform:translateX(-180%)}40%{transform:translateX(0)}55%{transform:translateY(-14px)}70%{transform:translateY(0)}100%{transform:translateY(0)}}
-.pv-pop{position:absolute;left:18px;bottom:244px;width:min(72%,214px);background:var(--bubble);border:3px solid var(--border);border-radius:14px;box-shadow:var(--hard-sm);padding:11px 13px;opacity:0;transform:scale(.6);transform-origin:46px 100%;transition:opacity .25s,transform .25s}
-.pv-pop::after{content:"";position:absolute;left:46px;bottom:-15px;transform:translateX(-50%);width:0;height:0;border-left:11px solid transparent;border-right:11px solid transparent;border-top:16px solid var(--border)}
-.pv-pop::before{content:"";position:absolute;left:46px;bottom:-8px;transform:translateX(-50%);z-index:1;width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:11px solid var(--bubble)}
+@keyframes hop{0%{transform:translateX(180%)}40%{transform:translateX(0)}55%{transform:translateY(-14px)}70%{transform:translateY(0)}100%{transform:translateY(0)}}
+.pv-pop{position:absolute;right:18px;bottom:244px;width:min(72%,214px);background:var(--bubble);border:3px solid var(--border);border-radius:14px;box-shadow:var(--hard-sm);padding:11px 13px;opacity:0;transform:scale(.6);transform-origin:calc(100% - 46px) 100%;transition:opacity .25s,transform .25s}
+.pv-pop::after{content:"";position:absolute;right:46px;bottom:-15px;transform:translateX(50%);width:0;height:0;border-left:11px solid transparent;border-right:11px solid transparent;border-top:16px solid var(--border)}
+.pv-pop::before{content:"";position:absolute;right:46px;bottom:-8px;transform:translateX(50%);z-index:1;width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:11px solid var(--bubble)}
 .builder .preview.playing .pv-pop{opacity:1;transform:scale(1);transition-delay:.35s}
 .pv-pop .who{font-family:'Pixelify Sans';font-size:.68rem;color:var(--bubble-muted);margin-bottom:3px}
 .pv-pop .msg{font-family:var(--mono);font-weight:600;color:var(--bubble-ink);font-size:.94rem}
@@ -353,7 +353,7 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
   .cta-row .btn{width:100%}
   .btn.big{font-size:1.05rem;padding:15px 18px}
   .stage{height:360px}
-  .actor{left:20px}
+  .actor{right:20px}
   .buddy{width:80px}
   .pop{width:min(74%,205px);padding:11px 12px}
   .pop .msg{font-size:.9rem}
@@ -628,7 +628,7 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
     // show emoji stand-in for placeholder characters
     var em=document.getElementById('pvEmoji');
     if(current.emoji){
-      if(!em){em=document.createElement('div');em.id='pvEmoji';em.style.cssText='position:absolute;bottom:14px;left:22px;font-size:64px;line-height:1;filter:drop-shadow(0 5px 4px rgba(0,0,0,.25))';preview.appendChild(em);}
+      if(!em){em=document.createElement('div');em.id='pvEmoji';em.style.cssText='position:absolute;bottom:14px;right:22px;font-size:64px;line-height:1;filter:drop-shadow(0 5px 4px rgba(0,0,0,.25))';preview.appendChild(em);}
       em.textContent=current.emoji;
     } else if(em){em.remove();}
     play();
