@@ -72,8 +72,14 @@ app.whenReady().then(async () => {
   initAutoUpdate()
 })
 
-// Re-open the control window when the app is activated (macOS).
-app.on('activate', () => openSettings())
+// Re-open the control window when the app is activated (macOS) — but ONLY when
+// there are no visible windows. Clicking the corner overlay's Accept/Snooze
+// buttons activates the app too; without this guard that would pop the settings
+// window open on every reminder. When the overlay is on screen it counts as a
+// visible window, so a button click no longer opens the app.
+app.on('activate', (_event, hasVisibleWindows) => {
+  if (!hasVisibleWindows) openSettings()
+})
 
 // Stay alive in the background even when no window is visible.
 app.on('window-all-closed', () => {
