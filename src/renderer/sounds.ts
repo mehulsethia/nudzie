@@ -2,7 +2,7 @@
 // sounds module). Ships one free "chime" sample; the Pro build can add more,
 // gated by the license in the main process. Kept simple: decode once, cache,
 // play on demand.
-import chimeUrl from './overlay/chime.wav'
+import chimeUrl from './overlay/notify.mp3'
 
 const URLS: Record<string, string> = {
   chime: chimeUrl
