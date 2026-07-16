@@ -28,6 +28,11 @@ export type Prefs = {
   character: string // which character walks in; free is limited to the free set
   characterChosen: boolean // has the user picked one yet (drives first-run onboarding)
 
+  // --- Bubble personalization (Pro; free is pinned to the defaults) ---
+  bubbleTheme: string // colour theme id (see src/renderer/appearance.ts)
+  bubbleFont: string // message font id
+  soundChoice: string // sound id ('chime' | 'custom' | …)
+
   // --- One-time seed of the starter reminder templates (all disabled) ---
   templatesSeeded: boolean
 }
@@ -52,6 +57,11 @@ const DEFAULT_PREFS: Prefs = {
 
   character: 'male',
   characterChosen: false,
+
+  bubbleTheme: 'cream',
+  bubbleFont: 'mono',
+  soundChoice: 'chime',
+
   templatesSeeded: false
 }
 
@@ -74,6 +84,7 @@ const customIdlePath = (): string => join(dataDir(), 'custom-idle.txt')
 const customActionPath = (): string => join(dataDir(), 'custom-action.txt')
 const customTrayPath = (): string => join(dataDir(), 'custom-tray.txt')
 const customAppIconPath = (): string => join(dataDir(), 'custom-appicon.txt')
+const customSoundPath = (): string => join(dataDir(), 'custom-sound.txt')
 
 let cache: Prefs | null = null
 
@@ -371,5 +382,31 @@ export function clearCustomCharacter(): void {
     } catch {
       /* ignore */
     }
+  }
+}
+
+// --- Custom sound: a user-supplied audio clip (data URL, <= 5s), on device only ---
+
+export function saveCustomSound(dataUrl: string): void {
+  try {
+    writeFileSync(customSoundPath(), dataUrl, 'utf8')
+  } catch {
+    /* best-effort */
+  }
+}
+
+export function loadCustomSound(): string | null {
+  try {
+    return existsSync(customSoundPath()) ? readFileSync(customSoundPath(), 'utf8') : null
+  } catch {
+    return null
+  }
+}
+
+export function clearCustomSound(): void {
+  try {
+    if (existsSync(customSoundPath())) rmSync(customSoundPath())
+  } catch {
+    /* ignore */
   }
 }

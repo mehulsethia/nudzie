@@ -10,6 +10,9 @@ export type Reminder = {
   snoozeMinutes: number
   character?: string
   sound?: boolean
+  bubbleTheme?: string
+  bubbleFont?: string
+  soundUrl?: string
 }
 
 // Single, minimal API exposed to both the overlay and settings renderers.
@@ -55,6 +58,11 @@ contextBridge.exposeInMainWorld('nudzie', {
   setCustomCharacter: (c: { idle: string; action: string; tray?: string; appIcon?: string }) =>
     ipcRenderer.invoke('character:setCustom', c),
   clearCustomCharacter: () => ipcRenderer.invoke('character:clearCustom'),
+
+  // --- Custom sound (Pro) ---
+  setCustomSound: (dataUrl: string) => ipcRenderer.invoke('sound:setCustom', dataUrl),
+  getCustomSound: () => ipcRenderer.invoke('sound:getCustom'),
+  clearCustomSound: () => ipcRenderer.invoke('sound:clearCustom'),
 
   // --- License / premium (stub) ---
   licenseStatus: () => ipcRenderer.invoke('license:status'),

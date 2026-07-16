@@ -42,3 +42,22 @@ export function playSound(ctx: AudioContext, id = 'chime', when?: number, volume
     src.start(Math.max(at, ctx.currentTime))
   })
 }
+
+/** Play an arbitrary audio URL (e.g. a user's custom-sound data URL). */
+export function playSoundUrl(ctx: AudioContext, url: string, volume = 0.9): void {
+  if (!url) return
+  void fetch(url)
+    .then((r) => r.arrayBuffer())
+    .then((buf) => ctx.decodeAudioData(buf))
+    .then((decoded) => {
+      const src = ctx.createBufferSource()
+      src.buffer = decoded
+      const gain = ctx.createGain()
+      gain.gain.value = volume
+      src.connect(gain).connect(ctx.destination)
+      src.start()
+    })
+    .catch(() => {
+      /* ignore undecodable audio */
+    })
+}

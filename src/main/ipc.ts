@@ -6,6 +6,9 @@ import {
   saveCustomCharacter,
   loadCustomCharacter,
   clearCustomCharacter,
+  saveCustomSound,
+  loadCustomSound,
+  clearCustomSound,
   getScheduled,
   setScheduled,
   type CustomCharacter,
@@ -184,6 +187,21 @@ export function registerIpc(): void {
     refreshTrayIcon()
     applyAppIcon()
     return prefs
+  })
+
+  // --- Custom sound (Pro): a user-supplied clip, stored on device only ---
+  ipcMain.handle('sound:setCustom', (_e, dataUrl: string) => {
+    if (!license.isPremium()) throw new Error('Custom sounds are a Pro feature.')
+    if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:audio')) {
+      throw new Error('Please choose an audio file.')
+    }
+    saveCustomSound(dataUrl)
+    return true
+  })
+  ipcMain.handle('sound:getCustom', () => loadCustomSound())
+  ipcMain.handle('sound:clearCustom', () => {
+    clearCustomSound()
+    return true
   })
 
   // --- License / premium (stub - defaults to free tier) ---

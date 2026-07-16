@@ -8,7 +8,8 @@
 // component (see src/main/scheduler.ts). The host (overlay.ts) supplies the
 // callbacks that talk to the main process.
 import { characterById } from '../characters'
-import { playSound } from '../sounds'
+import { playSound, playSoundUrl } from '../sounds'
+import { themeById, fontById } from '../appearance'
 
 export type ReminderView = {
   id: string
@@ -22,6 +23,9 @@ export type ReminderView = {
   idleUrl?: string // custom-character sprites (override the registry lookup)
   actionUrl?: string
   sound?: boolean
+  bubbleTheme?: string
+  bubbleFont?: string
+  soundUrl?: string // custom sound clip (data URL); overrides the default chime
 }
 
 export type CornerWalkCallbacks = {
@@ -81,7 +85,14 @@ export class CornerWalk {
     const snoozable = r.kind !== 'summary' && !!r.snoozeLabel
     this.refs.snoozeBtn.classList.toggle('hidden', !snoozable)
 
-    if (r.sound !== false) this.playChime()
+    // Bubble personalization (colour theme + message font) from the payload.
+    const theme = themeById(r.bubbleTheme)
+    const font = fontById(r.bubbleFont)
+    this.refs.bubble.style.setProperty('--bubble-bg', theme.bg)
+    this.refs.bubble.style.setProperty('--bubble-ink', theme.ink)
+    this.refs.bubble.style.setProperty('--bubble-font', font.family)
+
+    if (r.sound !== false) this.playChime(r.soundUrl)
 
     await this.walkIn()
     if (r.kind === 'summary') this.showSummary(r.message, r.items ?? [])
@@ -90,11 +101,12 @@ export class CornerWalk {
   }
 
   // ---- sound ----
-  private playChime(): void {
+  private playChime(url?: string): void {
     try {
       if (!this.audioCtx) this.audioCtx = new AudioContext()
       if (this.audioCtx.state === 'suspended') void this.audioCtx.resume()
-      playSound(this.audioCtx, 'chime')
+      if (url) playSoundUrl(this.audioCtx, url)
+      else playSound(this.audioCtx, 'chime')
     } catch {
       /* audio is a nice-to-have */
     }

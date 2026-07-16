@@ -1,4 +1,5 @@
 import { CHARACTERS, characterById } from '../characters'
+import { BUBBLE_THEMES, BUBBLE_FONTS, SOUND_OPTIONS } from '../appearance'
 import { processCharacterImage, makeTrayFromIdle, makeAppIconFromIdle } from './bg-remove'
 
 const q = window.nudzie
@@ -530,6 +531,190 @@ async function initCustom(): Promise<void> {
   renderCharacters()
 }
 
+// ---- Appearance extras: bubble theme, message font, sound (all Pro) ----
+const themesEl = $('themes')
+const fontsEl = $('fonts')
+const soundsEl = $('sounds')
+const upSound = $<HTMLInputElement>('up-sound')
+const soundError = $('sound-error')
+const apprProBadges = Array.from(document.querySelectorAll<HTMLElement>('.appr-pro'))
+let hasCustomSound = false
+
+function apprTile(o: {
+  name: string
+  selected: boolean
+  locked: boolean
+  soon?: boolean
+  fill: (tile: HTMLElement) => void
+  onClick: () => void
+}): HTMLElement {
+  const tile = document.createElement('button')
+  tile.className = 'tile' + (o.selected ? ' selected' : '') + (o.locked ? ' locked' : '')
+  o.fill(tile)
+  const name = document.createElement('span')
+  name.className = 'tile-name'
+  name.textContent = o.name
+  tile.append(name)
+  if (o.soon) {
+    const s = document.createElement('span')
+    s.className = 'soon'
+    s.textContent = 'coming soon'
+    tile.append(s)
+  }
+  if (o.locked) {
+    const lk = document.createElement('span')
+    lk.className = 'lock'
+    lk.textContent = '🔒'
+    tile.append(lk)
+  }
+  tile.addEventListener('click', o.onClick)
+  return tile
+}
+
+function renderAppearance(): void {
+  apprProBadges.forEach((b) => b.classList.toggle('hidden', isPro))
+
+  themesEl.innerHTML = ''
+  for (const t of BUBBLE_THEMES) {
+    const locked = !t.free && !isPro
+    themesEl.append(
+      apprTile({
+        name: t.name,
+        selected: prefs.bubbleTheme === t.id,
+        locked,
+        fill: (tile) => {
+          const sw = document.createElement('span')
+          sw.className = 'swatch'
+          sw.style.background = t.bg
+          tile.append(sw)
+        },
+        onClick: () => {
+          if (locked) return showTab('pro')
+          prefs.bubbleTheme = t.id
+          void q.setPrefs({ bubbleTheme: t.id })
+          renderAppearance()
+        }
+      })
+    )
+  }
+
+  fontsEl.innerHTML = ''
+  for (const f of BUBBLE_FONTS) {
+    const locked = !f.free && !isPro
+    fontsEl.append(
+      apprTile({
+        name: f.name,
+        selected: prefs.bubbleFont === f.id,
+        locked,
+        fill: (tile) => {
+          const p = document.createElement('span')
+          p.className = 'fontprev'
+          p.style.fontFamily = f.family
+          p.textContent = 'Aa'
+          tile.append(p)
+        },
+        onClick: () => {
+          if (locked) return showTab('pro')
+          prefs.bubbleFont = f.id
+          void q.setPrefs({ bubbleFont: f.id })
+          renderAppearance()
+        }
+      })
+    )
+  }
+
+  soundsEl.innerHTML = ''
+  for (const s of SOUND_OPTIONS) {
+    const locked = !s.free && !isPro
+    const isUpload = !!s.upload
+    soundsEl.append(
+      apprTile({
+        name: isUpload && hasCustomSound ? 'Your sound' : s.name,
+        selected: prefs.soundChoice === s.id,
+        locked,
+        soon: s.comingSoon,
+        fill: (tile) => {
+          const ic = document.createElement('span')
+          ic.className = 'snd-ic'
+          ic.textContent = isUpload ? '⬆️' : s.comingSoon ? '🔒' : '🔊'
+          tile.append(ic)
+        },
+        onClick: () => {
+          if (locked) return showTab('pro')
+          if (s.comingSoon) return
+          if (isUpload) {
+            if (hasCustomSound) {
+              prefs.soundChoice = 'custom'
+              void q.setPrefs({ soundChoice: 'custom' })
+              renderAppearance()
+            } else {
+              upSound.click()
+            }
+            return
+          }
+          prefs.soundChoice = s.id
+          void q.setPrefs({ soundChoice: s.id })
+          renderAppearance()
+        }
+      })
+    )
+  }
+}
+
+const MAX_SOUND_BYTES = 2 * 1024 * 1024
+const MAX_SOUND_SECONDS = 5
+function audioDuration(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file)
+    const a = new Audio()
+    a.preload = 'metadata'
+    a.onloadedmetadata = () => {
+      URL.revokeObjectURL(url)
+      resolve(a.duration)
+    }
+    a.onerror = () => {
+      URL.revokeObjectURL(url)
+      reject(new Error('Could not read that audio file.'))
+    }
+    a.src = url
+  })
+}
+function readDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader()
+    r.onload = () => resolve(String(r.result))
+    r.onerror = () => reject(new Error('Could not read that file.'))
+    r.readAsDataURL(file)
+  })
+}
+upSound.addEventListener('change', async () => {
+  const file = upSound.files?.[0]
+  if (!file) return
+  soundError.classList.add('hidden')
+  try {
+    if (!file.type.startsWith('audio/') && !/\.(mp3|wav|m4a)$/i.test(file.name)) {
+      throw new Error('Please choose an mp3, wav, or m4a file.')
+    }
+    if (file.size > MAX_SOUND_BYTES) {
+      throw new Error(`That file is ${(file.size / 1048576).toFixed(1)} MB - please use one under 2 MB.`)
+    }
+    const dur = await audioDuration(file)
+    if (dur > MAX_SOUND_SECONDS + 0.25) {
+      throw new Error(`That clip is ${dur.toFixed(1)}s - please use one up to ${MAX_SOUND_SECONDS} seconds.`)
+    }
+    await q.setCustomSound(await readDataUrl(file))
+    hasCustomSound = true
+    prefs.soundChoice = 'custom'
+    await q.setPrefs({ soundChoice: 'custom' })
+    renderAppearance()
+  } catch (e) {
+    soundError.textContent = (e as Error).message
+    soundError.classList.remove('hidden')
+  } finally {
+    upSound.value = ''
+  }
+})
+
 // ---- Calendars (picker + wizards) ----
 const calPicker = $('cal-picker')
 const wizIcal = $('wiz-ical')
@@ -747,6 +932,7 @@ function renderLicense(s: LicenseStatus): void {
     ? `Thanks for supporting Nudzie! Key ${s.keyMasked ?? ''}`
     : 'Unlock extra characters, sounds and themes - and support the project.'
   renderCharacters()
+  renderAppearance()
 }
 
 activateBtn.addEventListener('click', async () => {
@@ -786,8 +972,10 @@ function fillPrefs(p: Prefs): void {
 
 void (async () => {
   fillPrefs(await q.getPrefs())
+  hasCustomSound = !!(await q.getCustomSound())
   renderLicense(await q.licenseStatus())
   await initCustom()
+  renderAppearance()
   updateSchRows()
   scheduledCache = await q.scheduledList()
   renderReminders()

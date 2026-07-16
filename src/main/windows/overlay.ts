@@ -1,6 +1,6 @@
 import { app, BrowserWindow, screen } from 'electron'
 import { join } from 'node:path'
-import { getPrefs, loadCustomCharacter } from '../store'
+import { getPrefs, loadCustomCharacter, loadCustomSound } from '../store'
 import { isPremium, canUseCustomCharacter } from '../license'
 
 /**
@@ -20,6 +20,11 @@ function keepDockVisible(): void {
 // imports), so the authoritative free/Pro gate lives here.
 const FREE_CHARACTERS = new Set(['male', 'female', 'androgynous'])
 const DEFAULT_CHARACTER = 'male'
+// Bubble personalization free tiers (Pro unlocks the rest). Keep in sync with
+// src/renderer/appearance.ts.
+const FREE_THEMES = new Set(['cream'])
+const FREE_FONTS = new Set(['mono'])
+const FREE_SOUNDS = new Set(['chime'])
 
 /** One reminder to show via the corner-walk character. */
 export type Reminder = {
@@ -39,6 +44,10 @@ export type Reminder = {
   idleUrl?: string
   actionUrl?: string
   sound?: boolean
+  // Bubble personalization (all Pro-gated in showReminder; free is pinned).
+  bubbleTheme?: string
+  bubbleFont?: string
+  soundUrl?: string // custom sound data URL (Pro); overrides the default chime
 }
 
 // A corner window like Hydrate Buddy's: small, transparent, shown per reminder.
@@ -182,6 +191,16 @@ export function showReminder(reminder: Reminder): void {
       } else {
         full.character = DEFAULT_CHARACTER
       }
+    }
+
+    // Bubble theme / font / sound - Pro-gated, so a tampered renderer can't unlock
+    // them; free tier is pinned to the defaults.
+    full.bubbleTheme = pro || FREE_THEMES.has(prefs.bubbleTheme) ? prefs.bubbleTheme : 'cream'
+    full.bubbleFont = pro || FREE_FONTS.has(prefs.bubbleFont) ? prefs.bubbleFont : 'mono'
+    const soundId = pro || FREE_SOUNDS.has(prefs.soundChoice) ? prefs.soundChoice : 'chime'
+    if (soundId === 'custom') {
+      const clip = loadCustomSound()
+      if (clip) full.soundUrl = clip // else: no clip → overlay plays the default chime
     }
 
     // De-dupe: don't queue (or re-queue) a reminder that's already showing or

@@ -14,6 +14,9 @@ declare global {
     idleUrl?: string
     actionUrl?: string
     sound?: boolean
+    bubbleTheme?: string
+    bubbleFont?: string
+    soundUrl?: string
   }
 
   type CustomCharacter = { idle: string; action: string; tray?: string; appIcon?: string }
@@ -63,6 +66,9 @@ declare global {
     targetDisplay: 'cursor' | 'primary'
     character: string
     characterChosen: boolean
+    bubbleTheme: string
+    bubbleFont: string
+    soundChoice: string
     templatesSeeded: boolean
   }
 
@@ -119,6 +125,9 @@ declare global {
     getCustomCharacter: () => Promise<CustomCharacter | null>
     setCustomCharacter: (c: CustomCharacter) => Promise<Prefs>
     clearCustomCharacter: () => Promise<Prefs>
+    setCustomSound: (dataUrl: string) => Promise<boolean>
+    getCustomSound: () => Promise<string | null>
+    clearCustomSound: () => Promise<boolean>
     // License / premium
     licenseStatus: () => Promise<LicenseStatus>
     licenseActivate: (key: string) => Promise<LicenseStatus>
