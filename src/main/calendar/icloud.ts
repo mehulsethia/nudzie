@@ -147,12 +147,21 @@ export function status(): ProviderStatus {
 }
 
 export async function connect(username: string, password: string): Promise<void> {
-  creds = { username: username.trim(), password: password.trim() }
+  const user = username.trim()
+  // App-specific passwords are displayed grouped with hyphens (abcd-efgh-...);
+  // the actual credential is the 16 characters, so strip hyphens/spaces.
+  const pass = password.replace(/[\s-]/g, '')
   calendars = null
-  if (!creds.username || !creds.password) {
+  if (!user || !pass) {
     creds = null
     throw new Error('Enter your Apple ID and an app-specific password.')
   }
+  // iCloud CalDAV authenticates with the Apple ID email, never a phone number.
+  if (!user.includes('@')) {
+    creds = null
+    throw new Error('Use your Apple ID email address (e.g. you@icloud.com), not a phone number.')
+  }
+  creds = { username: user, password: pass }
   try {
     await discover() // validates the credentials (401 if wrong)
   } catch (e) {
