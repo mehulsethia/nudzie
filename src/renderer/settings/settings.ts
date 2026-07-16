@@ -29,6 +29,17 @@ function showTab(id: string): void {
 }
 navItems.forEach((n) => n.addEventListener('click', () => showTab(n.dataset.tab as string)))
 
+// Appearance sub-tabs (Character / Bubble / Font / Sound)
+Array.from(document.querySelectorAll<HTMLButtonElement>('.subtab')).forEach((t) =>
+  t.addEventListener('click', () => {
+    const s = t.dataset.sub
+    document.querySelectorAll<HTMLElement>('.subtab').forEach((x) => x.classList.toggle('active', x === t))
+    document.querySelectorAll<HTMLElement>('.subpanel').forEach((p) =>
+      p.classList.toggle('active', p.dataset.sub === s)
+    )
+  })
+)
+
 // ---- General ----
 const lead = $<HTMLInputElement>('lead')
 const template = $<HTMLInputElement>('template')
