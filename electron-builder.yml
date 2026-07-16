@@ -10,6 +10,12 @@ files:
   - out/**/*
   - package.json
   - "!**/*.{ts,map}"
+  # Bundle the Google OAuth client so end users get one-click "Connect Google"
+  # with no setup. The file is gitignored (never committed); it's read at build
+  # time from the project root and packaged into the app. For a Desktop OAuth
+  # client the secret is not confidential (Google expects it embedded in the
+  # distributed app). Absent at build time => simply not bundled.
+  - oauth-credentials.json
 
 mac:
   category: public.app-category.productivity

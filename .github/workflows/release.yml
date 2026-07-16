@@ -39,6 +39,21 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Bundle the Google OAuth client into the release so users get one-click
+      # sign-in. Store the JSON as the repo secret GOOGLE_OAUTH_JSON (the contents
+      # of oauth-credentials.json). Never committed to git.
+      - name: Write Google OAuth credentials (if provided)
+        shell: bash
+        env:
+          GOOGLE_OAUTH_JSON: ${{ secrets.GOOGLE_OAUTH_JSON }}
+        run: |
+          if [ -n "$GOOGLE_OAUTH_JSON" ]; then
+            printf '%s' "$GOOGLE_OAUTH_JSON" > oauth-credentials.json
+            echo "Wrote oauth-credentials.json"
+          else
+            echo "No GOOGLE_OAUTH_JSON secret set; building without bundled Google creds."
+          fi
+
       - name: Build & publish (${{ matrix.platform }})
         run: npm run dist:${{ matrix.platform }} -- --publish always
         env:
