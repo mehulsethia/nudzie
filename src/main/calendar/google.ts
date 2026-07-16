@@ -47,16 +47,21 @@ function loadCreds(): Creds | null {
   const envSecret = process.env.GOOGLE_CLIENT_SECRET
   if (envId && envSecret) return { clientId: envId, clientSecret: envSecret }
 
-  const file = join(app.getAppPath(), 'oauth-credentials.json')
-  try {
-    if (existsSync(file)) {
+  // Look next to the app (packaged) and in the working dir (dev / `npm run dev`).
+  const candidates = [
+    join(app.getAppPath(), 'oauth-credentials.json'),
+    join(process.cwd(), 'oauth-credentials.json')
+  ]
+  for (const file of candidates) {
+    try {
+      if (!existsSync(file)) continue
       const j = JSON.parse(readFileSync(file, 'utf8'))
       const clientId = j.clientId ?? j.installed?.client_id ?? j.web?.client_id
       const clientSecret = j.clientSecret ?? j.installed?.client_secret ?? j.web?.client_secret
       if (clientId && clientSecret) return { clientId, clientSecret }
+    } catch {
+      /* try the next candidate */
     }
-  } catch {
-    /* ignore */
   }
   return null
 }
