@@ -63,7 +63,6 @@ Array.from(document.querySelectorAll<HTMLButtonElement>('.tag-btn')).forEach((b)
 )
 
 $<HTMLButtonElement>('test-btn').addEventListener('click', () => void q.testReminder())
-$<HTMLButtonElement>('now-btn').addEventListener('click', () => void q.remindNow())
 $<HTMLButtonElement>('side-test-btn').addEventListener('click', () => void q.testReminder())
 
 // ---- Snooze length (global, applies to every reminder) ----

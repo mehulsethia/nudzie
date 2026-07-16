@@ -62,13 +62,12 @@
           <hr class="divider" />
 
           <h3>App</h3>
-          <label class="check"><input id="login" type="checkbox" /> Launch at login <span class="muted small">(applies to installed builds)</span></label>
+          <label class="check"><input id="login" type="checkbox" /> Launch at login</label>
           <label class="check"><input id="dockIcon" type="checkbox" /> Show in Dock <span class="muted small">(macOS - uncheck for menu-bar only)</span></label>
           <label class="check"><input id="stay" type="checkbox" /> Stay signed in to calendars</label>
 
           <div class="row">
             <button id="test-btn" class="btn btn-primary">Trigger a test reminder</button>
-            <button id="now-btn" class="btn btn-outline">Remind me now</button>
           </div>
         </section>
 
@@ -77,9 +76,9 @@
           <h2>Reminders</h2>
           <p class="muted">Repeating nudges and one-offs, all in one place - water and breaks on a timer, plus meds at 9 AM, a bill on the 1st, a birthday every year.</p>
 
-          <label class="field" style="max-width:280px">
+          <label class="field">
             <span>Snooze length (minutes, max 59) - applies to every reminder</span>
-            <input id="snoozeMinutes" type="number" min="1" max="59" />
+            <input id="snoozeMinutes" type="number" min="1" max="59" style="max-width:200px" />
           </label>
 
           <ul id="rem-list" class="rem-list"></ul>
