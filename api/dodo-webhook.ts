@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'node:crypto'
+const { createHmac, timingSafeEqual } = require('node:crypto') as typeof import('node:crypto')
 
 type HeaderValue = string | string[] | undefined
 

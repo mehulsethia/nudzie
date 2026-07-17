@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'node:crypto'
+const { createHmac, timingSafeEqual } = require('node:crypto') as typeof import('node:crypto')
 
 type HeaderValue = string | string[] | undefined
 
@@ -59,15 +59,16 @@ type GitHubRelease = {
   assets?: ReleaseAsset[]
 }
 
-const ADMIN_EMAIL = 'mehul@senseibles.com'
-const ADMIN_PASSWORD_SHA256 =
-  process.env.ADMIN_PASSWORD_SHA256 ||
-  '11a8c47e65b37964c85e849205f8e0b8f2a75f590245018ed071cbcee7f5d345'
 const DEFAULT_TEST_PRODUCT_ID = 'pdt_0NjNhzbBKhRAFXIfhHWst'
 const DEFAULT_LIVE_PRODUCT_ID = 'pdt_0NjNGaI7YglU4NWijdT4B'
 const GITHUB_RELEASES_API =
   process.env.NUDZIE_RELEASES_API ||
   'https://api.github.com/repos/mehulsethia/nudzie-releases/releases/latest'
+const ADMIN_EMAIL = 'mehul@senseibles.com'
+const ADMIN_PASSWORD_SHA256 =
+  process.env.ADMIN_PASSWORD_SHA256 ||
+  '11a8c47e65b37964c85e849205f8e0b8f2a75f590245018ed071cbcee7f5d345'
+const SESSION_MAX_AGE_SECONDS = 15 * 60
 
 function first(value: HeaderValue): string | undefined {
   return Array.isArray(value) ? value[0] : value
@@ -90,6 +91,17 @@ function safeEqual(a: string, b: string): boolean {
   const left = Buffer.from(a)
   const right = Buffer.from(b)
   return left.length === right.length && timingSafeEqual(left, right)
+}
+
+function makeAdminCookie(): string {
+  const payload = Buffer.from(
+    JSON.stringify({
+      email: ADMIN_EMAIL,
+      exp: Date.now() + SESSION_MAX_AGE_SECONDS * 1000
+    }),
+    'utf8'
+  ).toString('base64url')
+  return `nudzie_admin=${payload}.${sign(payload)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_MAX_AGE_SECONDS}`
 }
 
 function isAuthed(req: VercelRequestLike): boolean {
@@ -324,6 +336,7 @@ export default async function handler(
     res.status(401).json({ error: 'Unauthorized.' })
     return
   }
+  res.setHeader('Set-Cookie', makeAdminCookie())
 
   const selected = first(req.query?.mode)
   const modes: Mode[] = selected === 'test' || selected === 'live' ? [selected] : ['live', 'test']

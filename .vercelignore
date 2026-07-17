@@ -1,0 +1,8 @@
+node_modules/
+out/
+dist/
+build/
+.git/
+.DS_Store
+*.log
+oauth-credentials.json

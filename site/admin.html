@@ -217,7 +217,12 @@
 
     <script>
       (function(){
+        var INACTIVITY_LIMIT_MS=15*60*1000;
+        var TOUCH_INTERVAL_MS=60*1000;
         var state={data:null,mode:'live'};
+        var idleTimer=null;
+        var idleWatching=false;
+        var lastTouch=0;
         var login=document.getElementById('login');
         var dashboard=document.getElementById('dashboard');
         var loginForm=document.getElementById('loginForm');
@@ -241,6 +246,51 @@
         function statusPill(status){
           var cls=status==='succeeded'||status==='active'?'ok':(status==='failed'||status==='disabled'||status==='expired'?'bad':'warn');
           return '<span class="pill '+cls+'">'+(status||'-')+'</span>';
+        }
+        async function readJson(res){
+          var text=await res.text();
+          if(!text) return {};
+          try{return JSON.parse(text);}
+          catch(_err){
+            throw new Error('Server returned a non-JSON response. This usually means the API function crashed or is not deployed yet.');
+          }
+        }
+        async function logout(){
+          try{await fetch('/api/admin-logout',{method:'POST',credentials:'same-origin'});}
+          catch(_err){}
+          stopIdleWatch();
+          hide(dashboard);show(login);
+        }
+        async function touchSession(){
+          var now=Date.now();
+          if(now-lastTouch<TOUCH_INTERVAL_MS) return;
+          lastTouch=now;
+          try{
+            var res=await fetch('/api/admin-touch',{method:'POST',credentials:'same-origin'});
+            if(res.status===401) await logout();
+          }catch(_err){}
+        }
+        function resetIdleTimer(){
+          if(dashboard.classList.contains('hidden')) return;
+          if(idleTimer) window.clearTimeout(idleTimer);
+          idleTimer=window.setTimeout(function(){logout();},INACTIVITY_LIMIT_MS);
+          touchSession();
+        }
+        function startIdleWatch(){
+          if(idleWatching){resetIdleTimer();return;}
+          idleWatching=true;
+          ['click','keydown','mousemove','scroll','touchstart'].forEach(function(eventName){
+            window.addEventListener(eventName,resetIdleTimer,{passive:true});
+          });
+          resetIdleTimer();
+        }
+        function stopIdleWatch(){
+          if(idleTimer) window.clearTimeout(idleTimer);
+          idleTimer=null;
+          idleWatching=false;
+          ['click','keydown','mousemove','scroll','touchstart'].forEach(function(eventName){
+            window.removeEventListener(eventName,resetIdleTimer);
+          });
         }
         function currentMode(){
           var modes=(state.data&&state.data.modes)||[];
@@ -323,10 +373,11 @@
           hide(dashError);
           var res=await fetch('/api/admin-data',{credentials:'same-origin'});
           if(res.status===401){hide(dashboard);show(login);return;}
-          var data=await res.json();
+          var data=await readJson(res);
           if(!res.ok) throw new Error(data.error||'Could not load admin data.');
           state.data=data;
           hide(login);show(dashboard);
+          startIdleWatch();
           if(!currentMode()) state.mode=(data.modes&&data.modes[0]&&data.modes[0].mode)||'live';
           render();
         }
@@ -336,7 +387,7 @@
           loginBtn.disabled=true;
           try{
             var res=await fetch('/api/admin-login',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({email:document.getElementById('email').value,password:document.getElementById('password').value})});
-            var data=await res.json();
+            var data=await readJson(res);
             if(!res.ok) throw new Error(data.error||'Login failed.');
             await loadData();
           }catch(err){
@@ -348,8 +399,7 @@
         });
         document.getElementById('refreshBtn').addEventListener('click',function(){loadData().catch(function(err){dashError.textContent=err.message;show(dashError);});});
         document.getElementById('logoutBtn').addEventListener('click',async function(){
-          await fetch('/api/admin-logout',{method:'POST',credentials:'same-origin'});
-          hide(dashboard);show(login);
+          await logout();
         });
         document.querySelectorAll('.tab').forEach(function(tab){
           tab.addEventListener('click',function(){state.mode=tab.dataset.mode;render();});

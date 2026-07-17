@@ -154,6 +154,8 @@ nav{position:sticky;top:0;z-index:50;
 .hero .lede b{color:var(--on-ground);font-weight:600}
 .cta-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
 .cta-sub{font-size:.9rem;color:var(--on-ground-muted);margin:16px 0 0}
+.install-note{font-size:.78rem;color:var(--on-ground-muted);line-height:1.55;margin:12px 0 0;max-width:62ch}
+.install-note b{color:var(--on-ground)}
 .see-link{color:var(--grape-text);text-decoration:none;font-weight:600;font-family:'Pixelify Sans'}
 .see-link:hover{text-decoration:underline}
 .hero-right{display:flex;flex-direction:column;gap:14px}
@@ -445,6 +447,7 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
         <a class="btn" href="https://github.com/mehulsethia/nudzie-releases/releases/latest/download/Nudzie-Setup.exe">⬇ Download for Windows</a>
       </div>
       <p class="cta-sub">Free · macOS &amp; Windows · No account needed · <a class="see-link" href="#build">see it move ↓</a></p>
+      <p class="install-note">🔐 First launch: macOS may show an unidentified-developer warning because Nudzie is not Apple-signed yet. Open <b>System Settings → Privacy &amp; Security → Open Anyway</b>, or right-click the app and choose <b>Open</b>. Windows may show a SmartScreen warning because the installer is not code-signed yet; choose <b>More info → Run anyway</b> if you trust this download.</p>
     </div>
 
     <div class="hero-right">
@@ -666,6 +669,7 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
       </ul>
       <a class="btn" href="https://github.com/mehulsethia/nudzie-releases/releases/latest/download/Nudzie.dmg">Download free</a>
       <p class="after">No account needed. macOS and Windows.</p>
+      <p class="after">First launch may need macOS “Open Anyway” or Windows “Run anyway” because current builds are unsigned.</p>
     </div>
     <div class="price pro">
       <div class="badge">one-time - yours forever</div>
