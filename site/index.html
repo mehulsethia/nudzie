@@ -327,18 +327,20 @@ nav{position:sticky;top:0;z-index:50;
 @media(max-width:520px){.why{grid-template-columns:1fr}}
 
 /* ---------- pricing ---------- */
-.prices{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:820px;margin:0 auto}
-.price{background:var(--bubble);color:var(--bubble-ink);border:3px solid var(--border);border-radius:22px;box-shadow:var(--hard);padding:30px;position:relative}
+.prices{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:880px;margin:0 auto;align-items:stretch}
+.price{background:var(--bubble);color:var(--bubble-ink);border:3px solid var(--border);border-radius:22px;box-shadow:var(--hard);padding:30px;position:relative;display:flex;flex-direction:column;min-height:100%}
 .price.pro{border-color:var(--grape);box-shadow:8px 8px 0 var(--grape-deep)}
-.price .plan{font-family:'Pixelify Sans';font-size:1.15rem;margin-bottom:6px}
+.price .plan{font-family:'Pixelify Sans';font-size:1.35rem;margin-bottom:6px}
 .price .amt{font-family:'Pixelify Sans';font-size:3rem;line-height:1;margin:6px 0 4px}
 .price .amt small{font-size:1rem;color:var(--bubble-muted)}
-.price .terms{font-size:.82rem;color:var(--bubble-muted);margin-bottom:18px}
+.price .terms{font-size:.9rem;color:var(--bubble-muted);margin-bottom:18px;min-height:2.9em}
+.price .list-label{font-family:'Pixelify Sans';font-size:.78rem;color:var(--grape-text);margin:2px 0 8px}
 .price ul{list-style:none;padding:0;margin:0 0 24px}
-.price li{display:flex;gap:9px;padding:7px 0;font-size:.95rem;border-bottom:1px solid color-mix(in srgb,var(--border) 12%,transparent)}
-.price li::before{content:"▸";color:var(--grape-text);font-weight:700}
+.price li{display:flex;gap:10px;padding:8px 0;font-size:.95rem;border-bottom:1px solid color-mix(in srgb,var(--border) 12%,transparent);line-height:1.45}
+.price li .mark{flex:0 0 auto;color:var(--grape-text);font-weight:700}
 .price .badge{position:absolute;top:-14px;right:22px;background:var(--grape);color:#fff;font-family:'Pixelify Sans';font-size:.72rem;border:3px solid var(--border);border-radius:10px;padding:4px 11px;box-shadow:var(--hard-sm)}
-.price .btn{width:100%}
+.price .btn{width:100%;margin-top:auto}
+.price .after{font-size:.78rem;color:var(--bubble-muted);text-align:center;margin:12px 0 0}
 @media(max-width:680px){.prices{grid-template-columns:1fr}}
 
 /* ---------- privacy ---------- */
@@ -647,33 +649,39 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
   <div class="head">
     <div class="eyebrow-wrap"><span class="eyebrow"><span class="dot"></span>the price tag</span></div>
     <h2>Free forever - Pro if you want more</h2>
-    <p>Pay once for Pro. No subscription, ever.</p>
+    <p>Start with the full reminder flow. Pay once only if you want deeper customization.</p>
   </div>
   <div class="prices" id="download">
     <div class="price">
       <div class="plan">Free</div>
       <div class="amt">$0</div>
-      <div class="terms">Everything you need to get nudged.</div>
+      <div class="terms">The essentials for friendly desktop nudges.</div>
+      <div class="list-label">Included</div>
       <ul>
-        <li>The Buddy character</li>
-        <li>One calendar - any provider</li>
-        <li>Your own interval reminders</li>
-        <li>Your message &amp; a built-in sound</li>
+        <li><span class="mark">+</span><span>3 base characters to choose from</span></li>
+        <li><span class="mark">+</span><span>One calendar source: Google, iCloud, or iCal link</span></li>
+        <li><span class="mark">+</span><span>Unlimited manual and repeating reminders</span></li>
+        <li><span class="mark">+</span><span>Your own reminder message</span></li>
+        <li><span class="mark">+</span><span>White bubble, System font, and Default chime</span></li>
       </ul>
       <a class="btn" href="https://github.com/mehulsethia/nudzie-releases/releases/latest/download/Nudzie.dmg">Download free</a>
+      <p class="after">No account needed. macOS and Windows.</p>
     </div>
     <div class="price pro">
-      <div class="badge">one-time · yours forever</div>
+      <div class="badge">one-time - yours forever</div>
       <div class="plan">Pro</div>
       <div class="amt">$6.99 <small>once</small></div>
-      <div class="terms">Everything in Free, plus the fun stuff.</div>
+      <div class="terms">Everything in Free, plus the personal stuff.</div>
+      <div class="list-label">Unlocks</div>
       <ul>
-        <li>More characters &amp; sounds</li>
-        <li>Bring your own pixel character</li>
-        <li>Custom themes</li>
-        <li>Combine unlimited calendars</li>
+        <li><span class="mark">+</span><span>All bubble colours: Grape, Midnight, Sunset, Mint, Bubblegum, Lemon, Cloud, and Sky</span></li>
+        <li><span class="mark">+</span><span>All message fonts: Mono, Rounded, Serif, and Condensed</span></li>
+        <li><span class="mark">+</span><span>Bring your own pixel character for real nudges</span></li>
+        <li><span class="mark">+</span><span>Upload your own reminder sound</span></li>
+        <li><span class="mark">+</span><span>Combine multiple calendars at once</span></li>
       </ul>
       <a class="btn primary" id="getProBtn" href="/api/create-checkout?source=site&redirect=1">Get Pro</a>
+      <p class="after">Activate in the app. One device at a time.</p>
     </div>
   </div>
 </section>
@@ -697,7 +705,7 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
   <div class="faq">
     <details><summary>Which calendars work?</summary><p>Google Calendar, Apple iCloud (via CalDAV), and any public iCal / .ics link. It's read-only - Nudzie never edits or deletes your events.</p></details>
     <details><summary>Does it work over fullscreen apps?</summary><p>Yes. The buddy floats above everything, including fullscreen video calls, and never blocks your clicks - it stays out of the way until it's time to nudge.</p></details>
-    <details><summary>What's free, and what's Pro?</summary><p>Free gives you the three base characters, one calendar source, reminders, your own message, the White bubble, System font and Default chime. Pro is a one-time $6.99 and unlocks extra themes, fonts, sounds, bring-your-own pixel art, and combining unlimited calendars.</p></details>
+    <details><summary>What's free, and what's Pro?</summary><p>Free gives you three base characters, one calendar source, unlimited manual and repeating reminders, your own message, the White bubble, System font, and Default chime. Pro is a one-time $6.99 and unlocks all bubble colours, all extra fonts, custom character use, custom sound upload, and combining multiple calendars.</p></details>
     <details><summary>Why does Nudzie ask for Google Calendar access?</summary><p>Nudzie reads your primary Google Calendar only to find upcoming events and show reminder nudges before meetings. Access is read-only, processed on your device, and Nudzie never edits calendar events or sends calendar data to a server.</p></details>
     <details><summary>What about my privacy?</summary><p>Reminder and calendar data stays on your device. No telemetry or analytics. Calendar data stays in memory; only an encrypted sign-in token can be saved, and only with your permission. Pro purchases are handled by Dodo Payments.</p></details>
     <details><summary>Which platforms?</summary><p>macOS (Apple Silicon &amp; Intel) and Windows (x64 &amp; ARM). Same buddy, same features, on whichever desktop you use. Linux can follow.</p></details>
