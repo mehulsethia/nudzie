@@ -6,6 +6,8 @@ directories:
   buildResources: build
   output: dist
 
+afterPack: scripts/ad-hoc-sign-mac.cjs
+
 files:
   - out/**/*
   - package.json
@@ -24,9 +26,10 @@ mac:
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
-  # Notarization/signing require Apple Developer credentials. Left off so CI can
-  # produce an unsigned build (users see a one-time Gatekeeper prompt). Flip to
-  # true once APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID are set.
+  # Notarization/Developer ID signing require Apple Developer credentials. The
+  # afterPack hook still applies a free ad-hoc signature so the bundle is sealed.
+  # Flip notarize to true once APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD /
+  # APPLE_TEAM_ID are set.
   notarize: false
   artifactName: ${productName}.${ext}
   target:
