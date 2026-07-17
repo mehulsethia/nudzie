@@ -444,6 +444,105 @@ input::placeholder { color: #a7a3bd; }
 .feeds li:last-child { border-bottom: none; }
 
 /* ------------------------------------------------------------- characters */
+.appearance-preview {
+  margin: 0 0 22px;
+  border: 3px solid var(--border);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(circle at 18px 18px, rgba(107, 95, 240, 0.08) 2px, transparent 2.5px) 0 0 / 28px 28px,
+    linear-gradient(180deg, #f7f7ff 0%, #ffffff 100%);
+  box-shadow: var(--hard-sm);
+  overflow: hidden;
+}
+
+.appearance-stage {
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 24px 18px 18px;
+}
+
+.appearance-bubble {
+  position: relative;
+  width: min(420px, 90%);
+  background: var(--preview-bubble-bg, var(--paper));
+  border: 4px solid var(--border);
+  border-radius: 6px;
+  padding: 16px 16px 14px;
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.18);
+  transform-origin: bottom right;
+  margin-bottom: 16px;
+}
+
+.appearance-bubble p {
+  margin: 0 0 14px;
+  color: var(--preview-bubble-ink, var(--ink));
+  font-family: var(--preview-bubble-font, var(--mono));
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: center;
+  text-transform: uppercase;
+  font-weight: 700;
+  overflow-wrap: break-word;
+}
+
+.appearance-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.appearance-buttons button {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 9px 12px;
+  border: 3px solid var(--border);
+  border-radius: 4px;
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.35);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.appearance-buttons button:first-child {
+  background: var(--green);
+  color: #fff;
+}
+
+.appearance-tail {
+  position: absolute;
+  right: 46px;
+  bottom: -18px;
+  width: 0;
+  height: 0;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-top: 18px solid var(--border);
+}
+
+.appearance-tail::after {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: -18px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 12px solid var(--preview-bubble-bg, var(--paper));
+}
+
+#appearance-preview-sprite {
+  height: 150px;
+  max-width: 90%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 6px 5px rgba(0, 0, 0, 0.28));
+}
+
 .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 14px; margin: 4px 0 8px; }
 .tile {
   position: relative;

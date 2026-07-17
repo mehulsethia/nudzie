@@ -1,5 +1,5 @@
 import { CHARACTERS, characterById } from '../characters'
-import { BUBBLE_THEMES, BUBBLE_FONTS, SOUND_OPTIONS } from '../appearance'
+import { BUBBLE_THEMES, BUBBLE_FONTS, SOUND_OPTIONS, fontById, themeById } from '../appearance'
 import { processCharacterImage, makeTrayFromIdle, makeAppIconFromIdle } from './bg-remove'
 
 const q = window.nudzie
@@ -19,6 +19,11 @@ let prefs: Prefs
 let isPro = false
 let hasCustom = false
 let customIdleUrl: string | null = null // stored custom idle sprite (for its tile)
+let processedIdle: string | null = null
+let processedAction: string | null = null
+const APPEARANCE_CUSTOMIZATIONS_FREE_FOR_TESTING = true
+const canUseAppearanceCustomizations = (): boolean =>
+  APPEARANCE_CUSTOMIZATIONS_FREE_FOR_TESTING || isPro
 
 // ---- Tabs ----
 const navItems = Array.from(document.querySelectorAll<HTMLButtonElement>('.nav-item'))
@@ -49,9 +54,46 @@ const login = $<HTMLInputElement>('login')
 const dockIcon = $<HTMLInputElement>('dockIcon')
 const stay = $<HTMLInputElement>('stay')
 const display = $<HTMLSelectElement>('display')
+const appearanceBubble = $('appearance-bubble')
+const appearancePreviewText = $('appearance-preview-text')
+const appearancePreviewSprite = $<HTMLImageElement>('appearance-preview-sprite')
+const appearancePreviewSnooze = $<HTMLButtonElement>('appearance-preview-snooze')
+
+function previewMessage(): string {
+  const raw = prefs?.messageTemplate || 'Call with {title} in {minutes} minutes'
+  return raw
+    .replaceAll('{title}', 'Jack')
+    .replaceAll('{minutes}', '5')
+    .trim() || 'Call with Jack in 5 minutes'
+}
+
+function currentPreviewSprite(): string {
+  if (processedIdle) return processedIdle
+  if (prefs?.character === 'custom' && customIdleUrl) return customIdleUrl
+  return characterById(prefs?.character).idle
+}
+
+function updateAppearancePreview(): void {
+  if (!prefs) return
+  const theme = themeById(prefs.bubbleTheme)
+  const font = fontById(prefs.bubbleFont)
+  appearanceBubble.style.setProperty('--preview-bubble-bg', theme.bg)
+  appearanceBubble.style.setProperty('--preview-bubble-ink', theme.ink)
+  appearanceBubble.style.setProperty('--preview-bubble-font', font.family)
+  appearancePreviewText.textContent = previewMessage()
+  appearancePreviewSnooze.textContent = `+${Math.max(1, Math.min(59, prefs.snoozeMinutes || 15))}m`
+  appearancePreviewSprite.src = currentPreviewSprite()
+}
 
 lead.addEventListener('change', () => void q.setPrefs({ leadMinutes: Number(lead.value) }))
-template.addEventListener('change', () => void q.setPrefs({ messageTemplate: template.value }))
+template.addEventListener('input', () => {
+  if (prefs) prefs.messageTemplate = template.value
+  updateAppearancePreview()
+})
+template.addEventListener('change', async () => {
+  prefs = await q.setPrefs({ messageTemplate: template.value })
+  updateAppearancePreview()
+})
 remindAtStart.addEventListener('change', () => void q.setPrefs({ remindAtStart: remindAtStart.checked }))
 sound.addEventListener('change', () => void q.setPrefs({ soundEnabled: sound.checked }))
 login.addEventListener('change', () => void q.setPrefs({ launchAtLogin: login.checked }))
@@ -70,6 +112,8 @@ Array.from(document.querySelectorAll<HTMLButtonElement>('.tag-btn')).forEach((b)
     template.focus()
     const pos = start + token.length
     template.setSelectionRange(pos, pos)
+    if (prefs) prefs.messageTemplate = template.value
+    updateAppearancePreview()
     void q.setPrefs({ messageTemplate: template.value })
   })
 )
@@ -352,6 +396,7 @@ snoozeMinutes.addEventListener('change', async () => {
   const v = Math.max(1, Math.min(59, Number(snoozeMinutes.value) || 1))
   snoozeMinutes.value = String(v) // reflect the clamp back into the field
   prefs = await q.setPrefs({ snoozeMinutes: v })
+  updateAppearancePreview()
 })
 const clampHour = (v: string): number => Math.max(0, Math.min(23, Number(v) || 0))
 
@@ -359,8 +404,9 @@ const clampHour = (v: string): number => Math.max(0, Math.min(23, Number(v) || 0
 const charactersEl = $('characters')
 function renderCharacters(): void {
   charactersEl.innerHTML = ''
+  const unlocked = canUseAppearanceCustomizations()
   for (const c of CHARACTERS) {
-    const locked = !c.free && !isPro
+    const locked = !c.free && !unlocked
     const selected = prefs.character === c.id
     const tile = document.createElement('button')
     tile.className = 'tile' + (selected ? ' selected' : '') + (locked ? ' locked' : '')
@@ -382,6 +428,7 @@ function renderCharacters(): void {
       prefs.characterChosen = true
       void q.setPrefs({ character: c.id, characterChosen: true })
       renderCharacters()
+      updateAppearancePreview()
     })
     charactersEl.append(tile)
   }
@@ -402,9 +449,11 @@ function renderCharacters(): void {
       prefs.characterChosen = true
       void q.setPrefs({ character: 'custom', characterChosen: true })
       renderCharacters()
+      updateAppearancePreview()
     })
     charactersEl.append(tile)
   }
+  updateAppearancePreview()
 }
 
 // ---- Custom character ("make your own") ----
@@ -418,9 +467,6 @@ const prevAction = $('prev-action')
 const customError = $('custom-error')
 const customSave = $<HTMLButtonElement>('custom-save')
 const customRemove = $<HTMLButtonElement>('custom-remove')
-
-let processedIdle: string | null = null
-let processedAction: string | null = null
 
 function copyToClipboard(text: string, btn: HTMLButtonElement): void {
   void navigator.clipboard.writeText(text).then(() => {
@@ -470,6 +516,7 @@ async function onUpload(input: HTMLInputElement, target: HTMLElement, which: 'id
     if (which === 'idle') processedIdle = processed
     else processedAction = processed
     setPreview(target, processed)
+    updateAppearancePreview()
   } catch (err) {
     customError.textContent = (err as Error).message
     show(customError)
@@ -498,6 +545,7 @@ customSave.addEventListener('click', async () => {
     hasCustom = true
     show(customRemove)
     renderCharacters()
+    updateAppearancePreview()
   } catch (err) {
     customError.textContent = (err as Error).message
     show(customError)
@@ -519,6 +567,7 @@ customRemove.addEventListener('click', async () => {
   customSave.disabled = true
   hide(customRemove)
   renderCharacters()
+  updateAppearancePreview()
 })
 
 $('custom-upsell').addEventListener('click', (e) => {
@@ -540,6 +589,7 @@ async function initCustom(): Promise<void> {
     show(customRemove)
   }
   renderCharacters()
+  updateAppearancePreview()
 }
 
 // ---- Appearance extras: bubble theme, message font, sound (all Pro) ----
@@ -583,11 +633,12 @@ function apprTile(o: {
 }
 
 function renderAppearance(): void {
-  apprProBadges.forEach((b) => b.classList.toggle('hidden', isPro))
+  const unlocked = canUseAppearanceCustomizations()
+  apprProBadges.forEach((b) => b.classList.toggle('hidden', unlocked))
 
   themesEl.innerHTML = ''
   for (const t of BUBBLE_THEMES) {
-    const locked = !t.free && !isPro
+    const locked = !t.free && !unlocked
     themesEl.append(
       apprTile({
         name: t.name,
@@ -611,7 +662,7 @@ function renderAppearance(): void {
 
   fontsEl.innerHTML = ''
   for (const f of BUBBLE_FONTS) {
-    const locked = !f.free && !isPro
+    const locked = !f.free && !unlocked
     fontsEl.append(
       apprTile({
         name: f.name,
@@ -636,7 +687,7 @@ function renderAppearance(): void {
 
   soundsEl.innerHTML = ''
   for (const s of SOUND_OPTIONS) {
-    const locked = !s.free && !isPro
+    const locked = !s.free && !unlocked
     const isUpload = !!s.upload
     soundsEl.append(
       apprTile({
@@ -670,6 +721,7 @@ function renderAppearance(): void {
       })
     )
   }
+  updateAppearancePreview()
 }
 
 const MAX_SOUND_BYTES = 2 * 1024 * 1024
@@ -975,10 +1027,11 @@ function fillPrefs(p: Prefs): void {
   stay.checked = p.staySignedIn
   display.value = p.targetDisplay
   snoozeMinutes.value = String(p.snoozeMinutes)
-  // Make sure the selected character still exists (falls back to default).
-  prefs.character = characterById(p.character).id
+  // Make sure the selected built-in character still exists (custom is loaded below).
+  prefs.character = p.character === 'custom' ? 'custom' : characterById(p.character).id
   renderCharacters()
   renderReminders()
+  updateAppearancePreview()
 }
 
 void (async () => {

@@ -1,7 +1,8 @@
 // Personalization registry for the reminder bubble: colour theme, message font,
 // and sound. Shared by the settings picker (renderer) and the overlay renderer.
-// Free tier gets one default in each; the rest are Pro (gated in the main process,
-// see src/main/windows/overlay.ts). Keep the free ids in sync there.
+// Themes and sounds may be Pro-gated in the main process (see
+// src/main/windows/overlay.ts). Fonts are intentionally free so every user can
+// tune readability.
 
 export type BubbleTheme = {
   id: string
@@ -18,17 +19,20 @@ export const BUBBLE_THEMES: BubbleTheme[] = [
   { id: 'midnight', name: 'Midnight', free: false, bg: '#232a44', ink: '#eaf0ff', tail: '#232a44' },
   { id: 'sunset', name: 'Sunset', free: false, bg: '#ffb27a', ink: '#3a1f12', tail: '#ffb27a' },
   { id: 'mint', name: 'Mint', free: false, bg: '#bfe9cc', ink: '#123322', tail: '#bfe9cc' },
-  { id: 'bubblegum', name: 'Bubblegum', free: false, bg: '#f5c4e6', ink: '#4a1440', tail: '#f5c4e6' }
+  { id: 'bubblegum', name: 'Bubblegum', free: false, bg: '#f5c4e6', ink: '#4a1440', tail: '#f5c4e6' },
+  { id: 'lemon', name: 'Lemon', free: false, bg: '#fff1a8', ink: '#2f2a10', tail: '#fff1a8' },
+  { id: 'cloud', name: 'Cloud', free: false, bg: '#e8e8ee', ink: '#252538', tail: '#e8e8ee' },
+  { id: 'sky', name: 'Sky', free: false, bg: '#b9e3ff', ink: '#10283a', tail: '#b9e3ff' }
 ]
 
 export type BubbleFont = { id: string; name: string; free: boolean; family: string }
 
 export const BUBBLE_FONTS: BubbleFont[] = [
+  { id: 'system', name: 'System', free: true, family: "-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif" },
   { id: 'mono', name: 'Mono', free: true, family: "ui-monospace,'SF Mono','Cascadia Mono',Menlo,Consolas,monospace" },
-  { id: 'system', name: 'System', free: false, family: "-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif" },
-  { id: 'rounded', name: 'Rounded', free: false, family: "ui-rounded,'SF Pro Rounded','Nunito','Segoe UI',system-ui,sans-serif" },
-  { id: 'serif', name: 'Serif', free: false, family: "Georgia,'Iowan Old Style','Times New Roman',serif" },
-  { id: 'condensed', name: 'Condensed', free: false, family: "'Avenir Next Condensed','Arial Narrow','Roboto Condensed',sans-serif" }
+  { id: 'rounded', name: 'Rounded', free: true, family: "ui-rounded,'SF Pro Rounded','Nunito','Segoe UI',system-ui,sans-serif" },
+  { id: 'serif', name: 'Serif', free: true, family: "Georgia,'Iowan Old Style','Times New Roman',serif" },
+  { id: 'condensed', name: 'Condensed', free: true, family: "'Avenir Next Condensed','Arial Narrow','Roboto Condensed',sans-serif" }
 ]
 
 // Sounds. 'chime' is the bundled default; the middle ones are placeholders to fill

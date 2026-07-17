@@ -189,9 +189,11 @@ export function registerIpc(): void {
     return prefs
   })
 
-  // --- Custom sound (Pro): a user-supplied clip, stored on device only ---
+  // --- Custom sound: a user-supplied clip, stored on device only ---
   ipcMain.handle('sound:setCustom', (_e, dataUrl: string) => {
-    if (!license.isPremium()) throw new Error('Custom sounds are a Pro feature.')
+    if (!license.canUseAppearanceCustomizations()) {
+      throw new Error('Custom sounds are a Pro feature.')
+    }
     if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:audio')) {
       throw new Error('Please choose an audio file.')
     }

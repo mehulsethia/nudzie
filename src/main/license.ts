@@ -103,6 +103,14 @@ export function canUseCustomCharacter(): boolean {
   return !CUSTOM_CHARACTER_REQUIRES_PRO || isPremium()
 }
 
+// Temporary launch/testing flag: lets the free build exercise Appearance-tab
+// Pro customization without opening every Pro gate such as multi-calendar limits.
+export const APPEARANCE_CUSTOMIZATIONS_FREE_FOR_TESTING = true
+
+export function canUseAppearanceCustomizations(): boolean {
+  return APPEARANCE_CUSTOMIZATIONS_FREE_FOR_TESTING || isPremium()
+}
+
 export function status(): LicenseStatus {
   loadCache()
   return {

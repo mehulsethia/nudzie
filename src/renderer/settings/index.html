@@ -76,15 +76,6 @@
           <h2>Reminders</h2>
           <p class="muted">Repeating nudges and one-offs, all in one place - water and breaks on a timer, plus meds at 9 AM, a bill on the 1st, a birthday every year.</p>
 
-          <label class="field">
-            <span>Snooze length (minutes, max 59) - applies to every reminder</span>
-            <input id="snoozeMinutes" type="number" min="1" max="59" style="max-width:200px" />
-          </label>
-
-          <ul id="rem-list" class="rem-list"></ul>
-
-          <hr class="divider" />
-
           <!-- Add / edit a reminder (interval or scheduled) -->
           <div id="sched-form" class="cal-provider">
             <div class="form-title"><h3 id="sched-form-title">Add a reminder</h3></div>
@@ -126,6 +117,19 @@
             </div>
             <p id="sch-error" class="error hidden"></p>
           </div>
+
+          <hr class="divider" />
+
+          <div class="form-title"><h3>Saved reminders</h3></div>
+          <ul id="rem-list" class="rem-list"></ul>
+
+          <hr class="divider" />
+
+          <div class="form-title"><h3>Default snooze</h3></div>
+          <label class="field">
+            <span>Snooze length (minutes, max 59) - applies to every reminder</span>
+            <input id="snoozeMinutes" type="number" min="1" max="59" style="max-width:200px" />
+          </label>
         </section>
 
         <!-- ---------------- Calendars ---------------- -->
@@ -245,8 +249,22 @@
             <button class="subtab" data-sub="sound">Sound</button>
           </div>
 
+          <div class="appearance-preview" id="appearance-preview">
+            <div class="appearance-stage">
+              <div class="appearance-bubble" id="appearance-bubble">
+                <p id="appearance-preview-text">CALL WITH JACK IN 5 MINUTES</p>
+                <div class="appearance-buttons">
+                  <button type="button">Got it</button>
+                  <button type="button" id="appearance-preview-snooze">+15m</button>
+                </div>
+                <div class="appearance-tail"></div>
+              </div>
+              <img id="appearance-preview-sprite" alt="" draggable="false" />
+            </div>
+          </div>
+
           <div class="subpanel active" data-sub="char">
-          <p class="muted">Pick your buddy - the one character who walks in for every reminder. Three free identities to choose from: Male, Female, and Androgynous. More novelty characters (and your own custom one) are a Pro perk.</p>
+          <p class="muted">Pick your buddy - the one character who walks in for every reminder. Choose Male, Female, Androgynous, or make your own custom one below.</p>
           <div id="characters" class="tiles"></div>
 
           <div id="custom-wrap">
@@ -307,7 +325,7 @@
           </div>
 
           <div class="subpanel" data-sub="font">
-            <h3>Message font <span class="badge pro appr-pro hidden">PRO</span></h3>
+            <h3>Message font</h3>
             <p class="muted small">The font of the reminder text.</p>
             <div id="fonts" class="tiles small-tiles"></div>
           </div>
