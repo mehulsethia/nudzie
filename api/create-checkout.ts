@@ -34,7 +34,7 @@ function dodoBaseUrl(): string {
 }
 
 function siteUrl(): string {
-  return (process.env.NUDZIE_SITE_URL || 'https://nudzie.app').replace(/\/+$/, '')
+  return (process.env.NUDZIE_SITE_URL || 'https://www.nudzie.app').replace(/\/+$/, '')
 }
 
 function productId(): string {

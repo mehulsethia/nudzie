@@ -3,4 +3,4 @@ Allow: /
 Disallow: /admin
 Disallow: /success
 
-Sitemap: https://nudzie.app/sitemap.xml
+Sitemap: https://www.nudzie.app/sitemap.xml

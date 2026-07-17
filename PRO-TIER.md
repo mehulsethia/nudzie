@@ -36,7 +36,7 @@ DODO_API_KEY_LIVE=...
 DODO_MODE=test
 DODO_PRODUCT_ID_TEST=pdt_0NjNhzbBKhRAFXIfhHWst
 DODO_PRODUCT_ID_LIVE=pdt_0NjNGaI7YglU4NWijdT4B
-NUDZIE_SITE_URL=https://nudzie.app
+NUDZIE_SITE_URL=https://www.nudzie.app
 DODO_WEBHOOK_SECRET_TEST=...
 DODO_WEBHOOK_SECRET_LIVE=...
 ADMIN_SESSION_SECRET=...
@@ -69,7 +69,7 @@ pointed at Dodo test mode with `NUDZIE_DODO_MODE=test`.
 Dodo should send both test and live webhooks to:
 
 ```text
-https://nudzie.app/api/dodo-webhook
+https://www.nudzie.app/api/dodo-webhook
 ```
 
 The handler in `api/dodo-webhook.ts` verifies Dodo's Standard Webhooks signature
@@ -107,7 +107,7 @@ database later if you want durable revenue/download dashboards inside Nudzie.
 The private admin dashboard is available at:
 
 ```text
-https://nudzie.app/admin
+https://www.nudzie.app/admin
 ```
 
 It is gated by `api/admin-login.ts` and only accepts the configured Nudzie admin
