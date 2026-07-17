@@ -591,6 +591,21 @@ input[type='file'] { font-family: var(--body); font-size: 12px; }
 
 /* ------------------------------------------------------------- pro upsell */
 #license-locked, #license-active { padding: 20px; }
+.pro-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.pro-price-row strong {
+  font-family: var(--pix);
+  font-size: 32px;
+  line-height: 1;
+}
+.pro-price-row span {
+  color: var(--muted);
+  font-size: 14px;
+}
 
 ::-webkit-scrollbar { width: 12px; height: 12px; }
 ::-webkit-scrollbar-thumb { background: #c9c4e6; border: 3px solid var(--ground); border-radius: 8px; }
