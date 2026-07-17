@@ -4,22 +4,15 @@ import { machineIdSync } from 'node-machine-id'
 import { clearEntitlement, loadEntitlement, saveEntitlement } from './store'
 
 // ---------------------------------------------------------------------------
-// LICENSE CHECK - STUB (defaults to FREE tier).
+// LICENSE CHECK - Dodo license-key entitlements.
 //
-// This preserves QuakPit's open-core license-check *flow and gating shape*
-// (activate → validate → deactivate, an encrypted entitlement cache, an offline
-// grace window, and a single isPremium() gate), but every reference to a real
-// payment provider has been replaced with a generic placeholder. No real keys
-// or backend are wired up yet - see PRO-TIER.md for exactly what to fill in.
+// Checkout is created by the website/serverless API because it needs the
+// private Dodo API key. The desktop app only calls Dodo's public license
+// endpoints directly: activate, validate, deactivate.
 //
-// Turn LICENSE_BACKEND_ENABLED on and implement verifyKey()/revalidateKey()
-// against your own backend + payment provider to go live. Until then activate()
-// explains that licensing isn't configured, and the app runs as free tier.
-//
-// Dev/testing: set env NUDZIE_FORCE_PRO=1 to force premium and exercise all the
-// Pro gates without a backend.
+// Dev/testing: set env NUDZIE_FORCE_PRO=1 to force premium and exercise Pro
+// gates without a Dodo key. Set NUDZIE_DODO_MODE=test to hit Dodo test mode.
 // ---------------------------------------------------------------------------
-const LICENSE_BACKEND_ENABLED = false
 
 // Premium keeps working offline this long after the last successful validation.
 const GRACE_MS = 14 * 24 * 60 * 60 * 1000
@@ -34,10 +27,18 @@ export type LicenseStatus = {
 
 type Entitlement = {
   key: string
-  instanceId: string // activation id returned by the backend
+  instanceId: string // Dodo license_key_instance_id
   status: string // granted | revoked | disabled
   validatedAt: number
   expiresAt: number | null
+}
+
+type DodoLicenseResponse = {
+  id?: string
+  valid?: boolean
+  error?: string
+  message?: string
+  detail?: string
 }
 
 let ent: Entitlement | null | undefined // undefined = not loaded yet
@@ -71,14 +72,42 @@ function maskKey(k: string): string {
   return k.length <= 8 ? '••••' : `${k.slice(0, 4)}••••${k.slice(-4)}`
 }
 
-function parseExpiry(v: unknown): number | null {
-  return typeof v === 'string' ? new Date(v).getTime() : null
+function dodoMode(): 'test' | 'live' {
+  const raw = (process.env.NUDZIE_DODO_MODE || process.env.DODO_MODE || 'live').toLowerCase()
+  return raw === 'test' || raw === 'test_mode' ? 'test' : 'live'
+}
+
+function dodoBaseUrl(): string {
+  return dodoMode() === 'test'
+    ? 'https://test.dodopayments.com'
+    : 'https://live.dodopayments.com'
+}
+
+async function dodoPost(path: string, body: Record<string, unknown>): Promise<DodoLicenseResponse> {
+  const response = await fetch(`${dodoBaseUrl()}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  })
+
+  let data: DodoLicenseResponse = {}
+  try {
+    data = (await response.json()) as DodoLicenseResponse
+  } catch {
+    /* Dodo can still fail with an empty/non-JSON body. */
+  }
+
+  if (!response.ok) {
+    const message = data.message || data.error || data.detail || `Dodo returned HTTP ${response.status}.`
+    throw new Error(message)
+  }
+  return data
 }
 
 /**
- * THE SINGLE PRO GATE. Every Pro feature/asset ultimately checks this. Today it
- * returns false (free tier) unless a real backend is wired up and a valid key is
- * activated, or NUDZIE_FORCE_PRO=1 is set for local testing.
+ * THE SINGLE PRO GATE. Every Pro feature/asset ultimately checks this. A Dodo
+ * key must be activated and have a recent successful validation, or
+ * NUDZIE_FORCE_PRO=1 must be set for local testing.
  */
 export function isPremium(): boolean {
   if (process.env.NUDZIE_FORCE_PRO === '1') return true
@@ -94,18 +123,18 @@ export function isPremium(): boolean {
 // ---------------------------------------------------------------------------
 // Feature flag: is "make your own character" a paid (Pro) feature?
 // Set to `true` to gate custom characters behind isPremium() (the intended
-// monetisation). Left `false` for now so the feature is usable in this free
-// baseline; flipping it makes it Pro-only with no other code changes.
+// monetisation). Pro-only keeps the free tier simple: default characters,
+// default bubble, default font, default sound.
 // ---------------------------------------------------------------------------
-export const CUSTOM_CHARACTER_REQUIRES_PRO = false
+export const CUSTOM_CHARACTER_REQUIRES_PRO = true
 
 export function canUseCustomCharacter(): boolean {
   return !CUSTOM_CHARACTER_REQUIRES_PRO || isPremium()
 }
 
-// Temporary launch/testing flag: lets the free build exercise Appearance-tab
-// Pro customization without opening every Pro gate such as multi-calendar limits.
-export const APPEARANCE_CUSTOMIZATIONS_FREE_FOR_TESTING = true
+// Temporary launch/testing flag. Keep false for public builds: Pro appearance
+// customizations must remain locked unless the license is active.
+export const APPEARANCE_CUSTOMIZATIONS_FREE_FOR_TESTING = false
 
 export function canUseAppearanceCustomizations(): boolean {
   return APPEARANCE_CUSTOMIZATIONS_FREE_FOR_TESTING || isPremium()
@@ -122,38 +151,35 @@ export function status(): LicenseStatus {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Backend integration points - STUBBED. Fill these two functions in to go live.
-// Each should talk to your license/payment backend and return a normalized shape.
-// ---------------------------------------------------------------------------
-
 type VerifyResult = { instanceId: string; status: string; expiresAt: number | null }
 
-/** Activate (bind) a key to this device. STUB: throws "not configured" today. */
-async function verifyKey(_key: string, _label: string): Promise<VerifyResult> {
-  // TODO(pro): POST to your backend's "activate" endpoint with { key, label },
-  // returning { instanceId, status, expiresAt }. See PRO-TIER.md.
-  throw new Error(
-    'Licensing is not set up in this build yet. Nudzie is running as the free tier.'
-  )
+/** Activate (bind) a key to this device. Dodo enforces the activation limit. */
+async function verifyKey(key: string, label: string): Promise<VerifyResult> {
+  const data = await dodoPost('/licenses/activate', {
+    license_key: key,
+    name: label
+  })
+  if (!data.id) throw new Error('Dodo did not return a license activation id.')
+  return { instanceId: data.id, status: 'granted', expiresAt: null }
 }
 
-/** Re-check a previously activated key. STUB: returns the cached values today. */
+/** Re-check a previously activated key. */
 async function revalidateKey(e: Entitlement): Promise<VerifyResult> {
-  // TODO(pro): POST to your backend's "validate" endpoint with
-  // { key, activationId }, returning the current { instanceId, status, expiresAt }.
-  return { instanceId: e.instanceId, status: e.status, expiresAt: e.expiresAt }
+  const data = await dodoPost('/licenses/validate', {
+    license_key: e.key,
+    license_key_instance_id: e.instanceId
+  })
+  return {
+    instanceId: e.instanceId,
+    status: data.valid === true ? 'granted' : 'disabled',
+    expiresAt: null
+  }
 }
 
 /** Binds the key to this device (backend enforces the per-key device limit). */
 export async function activate(key: string): Promise<LicenseStatus> {
   const trimmed = key.trim()
   if (!trimmed) throw new Error('Please enter a license key.')
-  if (!LICENSE_BACKEND_ENABLED) {
-    throw new Error(
-      'Licensing is not set up in this build yet. Nudzie is running as the free tier.'
-    )
-  }
 
   const res = await verifyKey(trimmed, deviceId())
   ent = {
@@ -170,7 +196,7 @@ export async function activate(key: string): Promise<LicenseStatus> {
 /** Re-checks the license online; on network failure keeps the cache (offline grace). */
 export async function validate(): Promise<LicenseStatus> {
   loadCache()
-  if (!ent || !LICENSE_BACKEND_ENABLED) return status()
+  if (!ent) return status()
   try {
     const res = await revalidateKey(ent)
     ent = {
@@ -189,11 +215,13 @@ export async function validate(): Promise<LicenseStatus> {
 /** Releases the seat so the key can be activated on another device. */
 export async function deactivate(): Promise<LicenseStatus> {
   loadCache()
-  // TODO(pro): also notify the backend's "deactivate" endpoint before clearing.
+  if (ent) {
+    await dodoPost('/licenses/deactivate', {
+      license_key: ent.key,
+      license_key_instance_id: ent.instanceId
+    })
+  }
   ent = null
   clearEntitlement()
   return status()
 }
-
-// Kept so parseExpiry stays referenced if a backend impl needs it inline.
-void parseExpiry

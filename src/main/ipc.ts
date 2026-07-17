@@ -20,6 +20,7 @@ import * as license from './license'
 import { overlayDone } from './windows/overlay'
 import { applyDockMode, applyAppIcon } from './platform'
 import { refreshTrayIcon } from './tray'
+import { suppressSettingsActivation } from './activation'
 import {
   startScheduler,
   triggerTestReminder,
@@ -130,15 +131,22 @@ export function registerIpc(): void {
   })
   ipcMain.on(
     'reminder:accept',
-    (_e, id: string, kind: 'calendar' | 'interval' | 'scheduled' | 'summary') =>
+    (_e, id: string, kind: 'calendar' | 'interval' | 'scheduled' | 'summary') => {
+      suppressSettingsActivation()
       handleAccept(id, kind)
+    }
   )
   ipcMain.on(
     'reminder:snooze',
-    (_e, id: string, kind: 'calendar' | 'interval' | 'scheduled' | 'summary', minutes: number) =>
+    (_e, id: string, kind: 'calendar' | 'interval' | 'scheduled' | 'summary', minutes: number) => {
+      suppressSettingsActivation()
       handleSnooze(id, kind, minutes)
+    }
   )
-  ipcMain.on('reminder:hide', () => overlayDone())
+  ipcMain.on('reminder:hide', () => {
+    suppressSettingsActivation()
+    overlayDone()
+  })
 
   // --- Scheduled reminders (once/daily/weekly/monthly/yearly) ---
   ipcMain.handle('scheduled:list', () => getScheduled())
@@ -183,7 +191,7 @@ export function registerIpc(): void {
   ipcMain.handle('character:clearCustom', () => {
     clearCustomCharacter()
     const wasCustom = getPrefs().character === 'custom'
-    const prefs = setPrefs(wasCustom ? { character: 'buddy' } : {})
+    const prefs = setPrefs(wasCustom ? { character: 'male' } : {})
     refreshTrayIcon()
     applyAppIcon()
     return prefs
@@ -206,7 +214,7 @@ export function registerIpc(): void {
     return true
   })
 
-  // --- License / premium (stub - defaults to free tier) ---
+  // --- License / premium ---
   ipcMain.handle('license:status', () => license.status())
   ipcMain.handle('license:activate', (_e, key: string) => license.activate(key))
   ipcMain.handle('license:deactivate', () => license.deactivate())

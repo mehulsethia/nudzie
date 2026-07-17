@@ -290,19 +290,24 @@ nav{position:sticky;top:0;z-index:50;
 .custom-try{grid-column:1/-1;border-top:2px dashed color-mix(in srgb,var(--border) 30%,transparent);padding-top:18px;margin-top:2px}
 .ct-head{font-family:'Pixelify Sans';font-size:1rem;margin-bottom:10px;display:flex;align-items:center;gap:8px}
 .badge-pro{font-family:'Pixelify Sans';font-size:.62rem;background:var(--grape);color:#fff;border:2px solid var(--border);border-radius:8px;padding:2px 8px}
-.ct-recipe summary{font-family:'Pixelify Sans';font-size:.85rem;cursor:pointer;color:var(--grape-text)}
-.ct-body{margin:8px 0;font-size:.9rem;color:var(--on-ground-muted)}
-.prompt-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
-.prompt-card{display:flex;flex-direction:column;gap:8px}
+.ct-recipe{padding:20px 22px 22px}
+.ct-recipe summary{font-family:'Pixelify Sans';font-size:.85rem;cursor:pointer;color:var(--grape-text);padding:0}
+.ct-recipe summary::after{margin-left:auto}
+.ct-body{margin:18px 0 0;font-size:.9rem;color:var(--on-ground-muted)}
+.ct-body p{padding:0;margin:0 0 18px}
+.prompt-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;margin:0}
+.prompt-card{display:flex;flex-direction:column;gap:10px;min-width:0;height:100%}
 .prompt-card strong{font-family:'Pixelify Sans';font-size:.8rem;color:var(--bubble-ink)}
-.prompt-box{min-height:124px;border:2px solid color-mix(in srgb,var(--border) 28%,transparent);border-radius:12px;background:#fff;color:var(--bubble-muted);padding:10px;font-size:.78rem;line-height:1.45;overflow:auto}
+.prompt-box{flex:1;min-height:156px;border:2px solid color-mix(in srgb,var(--border) 28%,transparent);border-radius:12px;background:#fff;color:var(--bubble-muted);padding:12px;font-size:.78rem;line-height:1.45;overflow:auto}
+.prompt-card .btn{width:100%;margin-top:auto}
 .ct-copy{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
 .ct-copy .btn{font-size:.8rem;padding:8px 12px}
 .ct-uploads{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0}
 .ct-up{display:flex;flex-direction:column;gap:6px;font-family:'Pixelify Sans';font-size:.82rem}
 .ct-up input{font-family:var(--body);font-size:.8rem}
 .ct-note{font-size:.8rem;color:var(--on-ground-muted);margin:0}
-.sound-upload{margin-top:10px}
+.sound-upload{margin-top:22px;padding-top:6px}
+.sound-upload input{display:block;max-width:100%}
 @media(max-width:760px){.prompt-grid{grid-template-columns:1fr}}
 @media(max-width:560px){.ct-uploads{grid-template-columns:1fr}}
 .msg-in{width:100%;font-family:var(--mono);font-size:.95rem;border:3px solid var(--border);border-radius:12px;padding:11px 13px;background:#fff;color:var(--bubble-ink);box-shadow:3px 3px 0 var(--border)}
@@ -432,7 +437,7 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
   <div class="hero-grid">
     <div>
       <h1>Gentle nudges,<br>right when you <span class="hl">need them</span>.</h1>
-      <p class="lede">A little <b>pixel buddy</b> that lives in the corner of your screen and pops out of a speech bubble to nudge you with a friendly reminder for meetings, breaks, water, habits, or anything you set. <b>Accept or snooze</b>, and off they walk.</p>
+      <p class="lede"><b>Nudzie</b> is a little <b>pixel buddy</b> that lives in the corner of your screen and pops out of a speech bubble to nudge you with a friendly reminder for meetings, breaks, water, habits, or anything you set. <b>Accept or snooze</b>, and off they walk.</p>
       <div class="cta-row">
         <a class="btn primary" href="https://github.com/mehulsethia/nudzie-releases/releases/latest/download/Nudzie.dmg">⬇ Download for macOS</a>
         <a class="btn" href="https://github.com/mehulsethia/nudzie-releases/releases/latest/download/Nudzie-Setup.exe">⬇ Download for Windows</a>
@@ -552,7 +557,7 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
       <div class="field">
         <label>Bubble theme</label>
         <div class="chars" id="themes">
-          <button class="tsw sel" data-bg="#fdfdf7" data-ink="#1b1a2e" title="Cream"><span class="tsw-c" style="background:#fdfdf7"></span></button>
+          <button class="tsw sel" data-bg="#fdfdf7" data-ink="#1b1a2e" title="White"><span class="tsw-c" style="background:#fdfdf7"></span></button>
           <button class="tsw" data-bg="#6b5ff0" data-ink="#ffffff" title="Grape"><span class="tsw-c" style="background:#6b5ff0"></span><span class="lock">🔒</span></button>
           <button class="tsw" data-bg="#232a44" data-ink="#eaf0ff" title="Midnight"><span class="tsw-c" style="background:#232a44"></span><span class="lock">🔒</span></button>
           <button class="tsw" data-bg="#ffb27a" data-ink="#3a1f12" title="Sunset"><span class="tsw-c" style="background:#ffb27a"></span><span class="lock">🔒</span></button>
@@ -567,10 +572,10 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
         <label>Message font</label>
         <div class="chars" id="bfonts">
           <button class="char sel" data-font="-apple-system,system-ui,sans-serif">System</button>
-          <button class="char" data-font="ui-monospace,'SF Mono',Menlo,monospace">Mono</button>
-          <button class="char" data-font="ui-rounded,'SF Pro Rounded','Nunito',sans-serif">Rounded</button>
-          <button class="char" data-font="Georgia,'Iowan Old Style',serif">Serif</button>
-          <button class="char" data-font="'Avenir Next Condensed','Arial Narrow',sans-serif">Condensed</button>
+          <button class="char" data-font="ui-monospace,'SF Mono',Menlo,monospace">Mono <span class="lock">🔒</span></button>
+          <button class="char" data-font="ui-rounded,'SF Pro Rounded','Nunito',sans-serif">Rounded <span class="lock">🔒</span></button>
+          <button class="char" data-font="Georgia,'Iowan Old Style',serif">Serif <span class="lock">🔒</span></button>
+          <button class="char" data-font="'Avenir Next Condensed','Arial Narrow',sans-serif">Condensed <span class="lock">🔒</span></button>
         </div>
       </div>
       <div class="field">
@@ -591,7 +596,7 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
     </div>
     <div class="foot">
       <button class="btn primary" id="playBtn">▶ Preview the nudge</button>
-      <span class="note">3 characters, Cream, all fonts and Default chime are free. Pro themes, custom character and custom sound are free to try here.</span>
+      <span class="note">3 characters, White, System font and Default chime are free. Pro unlocks themes, extra fonts, custom character and custom sound.</span>
     </div>
     <div class="custom-try hidden" id="customTry">
       <div class="ct-head">🎨 Try your own character <span class="badge-pro">PRO · free preview</span></div>
@@ -668,7 +673,7 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
         <li>Custom themes</li>
         <li>Combine unlimited calendars</li>
       </ul>
-      <a class="btn primary" href="#">Get Pro</a>
+      <a class="btn primary" id="getProBtn" href="/api/create-checkout?source=site&redirect=1">Get Pro</a>
     </div>
   </div>
 </section>
@@ -678,8 +683,8 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
   <div class="privacy">
     <div class="eyebrow-wrap" style="justify-content:center"><span class="eyebrow"><span class="dot"></span>in case you wondered</span></div>
     <div class="lock">🔒</div>
-    <h2>Zero data. No servers.</h2>
-    <p>Nudzie has no backend and no database. Your calendar is read directly on your device, kept only in memory, and never written to disk or sent anywhere. No telemetry, no analytics. The only thing it can store is your encrypted sign-in token - and only if you ask it to.</p>
+    <h2>Your reminders stay local.</h2>
+    <p>Nudzie reads calendar and reminder data directly on your device, keeps event content only in memory, and does not use telemetry or analytics. Pro checkout and license delivery are handled by Dodo Payments; payment details never touch the desktop app.</p>
   </div>
 </section>
 
@@ -692,10 +697,11 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
   <div class="faq">
     <details><summary>Which calendars work?</summary><p>Google Calendar, Apple iCloud (via CalDAV), and any public iCal / .ics link. It's read-only - Nudzie never edits or deletes your events.</p></details>
     <details><summary>Does it work over fullscreen apps?</summary><p>Yes. The buddy floats above everything, including fullscreen video calls, and never blocks your clicks - it stays out of the way until it's time to nudge.</p></details>
-    <details><summary>What's free, and what's Pro?</summary><p>Free gives you the Buddy character, one calendar or interval, and your own message and sound. Pro is a one-time $6.99 and unlocks more characters and sounds, custom themes, bring-your-own pixel art, and combining unlimited calendars.</p></details>
-    <details><summary>What about my privacy?</summary><p>Everything runs on your device. No servers, no telemetry. Calendar data stays in memory; only an encrypted sign-in token can be saved, and only with your permission.</p></details>
+    <details><summary>What's free, and what's Pro?</summary><p>Free gives you the three base characters, one calendar source, reminders, your own message, the White bubble, System font and Default chime. Pro is a one-time $6.99 and unlocks extra themes, fonts, sounds, bring-your-own pixel art, and combining unlimited calendars.</p></details>
+    <details><summary>Why does Nudzie ask for Google Calendar access?</summary><p>Nudzie reads your primary Google Calendar only to find upcoming events and show reminder nudges before meetings. Access is read-only, processed on your device, and Nudzie never edits calendar events or sends calendar data to a server.</p></details>
+    <details><summary>What about my privacy?</summary><p>Reminder and calendar data stays on your device. No telemetry or analytics. Calendar data stays in memory; only an encrypted sign-in token can be saved, and only with your permission. Pro purchases are handled by Dodo Payments.</p></details>
     <details><summary>Which platforms?</summary><p>macOS (Apple Silicon &amp; Intel) and Windows (x64 &amp; ARM). Same buddy, same features, on whichever desktop you use. Linux can follow.</p></details>
-    <details><summary>How do I uninstall it?</summary><p>Quit from the menu bar and drag the app to the Trash. Nothing is left behind on a server - because there is no server.</p></details>
+    <details><summary>How do I uninstall it?</summary><p>Quit from the menu bar and drag the app to the Trash. Reminder and calendar data is local to your computer. If you use Pro, deactivate your license before uninstalling when possible.</p></details>
   </div>
 </section>
 
@@ -746,7 +752,17 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
     function alive(){return scene.__t===token;}
     function wait(ms){return new Promise(function(r){setTimeout(r,ms);});}
     function showAction(on){ if(idle&&action){ idle.classList.toggle('hidden',on); action.classList.toggle('hidden',!on); } }
-    if(opts.msg&&msgEl) msgEl.textContent=opts.msg;
+    var messages=Array.isArray(opts.messages)&&opts.messages.length?opts.messages:null;
+    var messageIndex=0;
+    function setMessage(){
+      if(!msgEl) return;
+      if(messages){
+        msgEl.textContent=messages[messageIndex%messages.length];
+        messageIndex++;
+      } else if(opts.msg) {
+        msgEl.textContent=opts.msg;
+      }
+    }
     function burst(){
       if(!confetti) return;
       var glyphs=['✨','🎉','⭐','💫','💙'], colors=['#6b5ff0','#37c24a','#4aa3df','#ff7a59','#8ad6ff'];
@@ -764,6 +780,7 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
       }
     }
     if(reduce){ // respect reduced motion: show the resting populated state, no loop
+      setMessage();
       pet.classList.remove('offstage','walking','face-right','celebrate');
       pop.classList.remove('hidden'); return;
     }
@@ -772,6 +789,7 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
       pet.classList.add('offstage'); void pet.offsetWidth;
       pet.classList.add('walking'); pet.classList.remove('offstage');        // walk in
       await wait(1150); if(!alive())return; pet.classList.remove('walking');
+      setMessage();
       pop.classList.remove('hidden');                                        // bubble springs in
       await wait(1700); if(!alive())return;
       showAction(true); await wait(950); if(!alive())return; showAction(false); // action pose
@@ -787,7 +805,8 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
 
   // hero: loop forever
   var heroScene=document.getElementById('see');
-  if(heroScene) playNudge(heroScene,{loop:true});
+  var heroMessages=['Call with Jack','Time for water','Take medicine','Sam birthday today'];
+  if(heroScene) playNudge(heroScene,{loop:true,messages:heroMessages});
 
   // hero: let visitors switch between the 3 free characters
   var csBtns=Array.prototype.slice.call(document.querySelectorAll('.char-switch .cs-btn'));
@@ -796,6 +815,29 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
       csBtns.forEach(function(b){b.classList.toggle('active',b===btn);});
       if(heroScene) setPet(heroScene, btn.getAttribute('data-char'));
     });
+  });
+
+  // pricing: create Dodo checkout, with the anchor href as a no-JS fallback
+  var getProBtn=document.getElementById('getProBtn');
+  getProBtn&&getProBtn.addEventListener('click',function(e){
+    e.preventDefault();
+    var original=getProBtn.textContent;
+    getProBtn.textContent='Opening checkout...';
+    fetch('/api/create-checkout?source=site',{method:'POST'})
+      .then(function(r){
+        return r.json().then(function(j){
+          if(!r.ok) throw new Error(j.error||'Checkout is not ready yet.');
+          return j;
+        });
+      })
+      .then(function(j){
+        if(j.checkout_url) window.location.href=j.checkout_url;
+        else throw new Error('Checkout is not ready yet.');
+      })
+      .catch(function(err){
+        alert(err.message||'Checkout is not ready yet.');
+        getProBtn.textContent=original;
+      });
   });
 
   // builder: play once on preview / character change; swap sprite <-> emoji stand-in

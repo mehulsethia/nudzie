@@ -7,6 +7,10 @@ export type Feed = { id: string; name: string; url: string }
 
 let feeds: Feed[] | undefined // undefined = not loaded yet
 
+function normalizeUrl(url: string): string {
+  return url.trim().replace(/^webcal:\/\//i, 'https://')
+}
+
 function load(): Feed[] {
   if (feeds) return feeds
   const raw = loadIcalFeeds()
@@ -24,7 +28,7 @@ function persist(): void {
 
 /** Accepts http(s) and webcal:// links; returns the .ics text (and validates it). */
 async function fetchFeed(url: string): Promise<string> {
-  const normalized = url.trim().replace(/^webcal:\/\//i, 'https://')
+  const normalized = normalizeUrl(url)
   if (!/^https?:\/\//i.test(normalized)) throw new Error('Enter a valid calendar link (https or webcal).')
   const res = await fetch(normalized, { redirect: 'follow', cache: 'no-store' })
   if (!res.ok) throw new Error(`Could not fetch the calendar (${res.status}).`)
@@ -89,13 +93,17 @@ export function listFeeds(): Feed[] {
 
 export async function addFeed(url: string, name?: string): Promise<Feed[]> {
   const ics = await fetchFeed(url) // validates the link
+  const normalized = normalizeUrl(url)
   let nm = (name ?? '').trim()
   if (!nm) {
     const m = /X-WR-CALNAME:(.+)/i.exec(ics)
     nm = m ? m[1].trim().slice(0, 60) : 'Calendar'
   }
   const list = load()
-  list.push({ id: randomUUID(), name: nm, url: url.trim() })
+  if (list.some((feed) => normalizeUrl(feed.url) === normalized)) {
+    throw new Error('That calendar link is already connected.')
+  }
+  list.push({ id: randomUUID(), name: nm, url: normalized })
   feeds = list
   persist()
   return listFeeds()

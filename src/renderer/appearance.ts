@@ -1,8 +1,7 @@
 // Personalization registry for the reminder bubble: colour theme, message font,
 // and sound. Shared by the settings picker (renderer) and the overlay renderer.
-// Themes and sounds may be Pro-gated in the main process (see
-// src/main/windows/overlay.ts). Fonts are intentionally free so every user can
-// tune readability.
+// Themes, non-system fonts, and sounds are Pro-gated in the main process (see
+// src/main/windows/overlay.ts). Keep free flags aligned with that gate.
 
 export type BubbleTheme = {
   id: string
@@ -14,7 +13,7 @@ export type BubbleTheme = {
 }
 
 export const BUBBLE_THEMES: BubbleTheme[] = [
-  { id: 'cream', name: 'Cream', free: true, bg: '#fdfdf7', ink: '#1b1a2e', tail: '#fdfdf7' },
+  { id: 'cream', name: 'White', free: true, bg: '#fdfdf7', ink: '#1b1a2e', tail: '#fdfdf7' },
   { id: 'grape', name: 'Grape', free: false, bg: '#6b5ff0', ink: '#ffffff', tail: '#6b5ff0' },
   { id: 'midnight', name: 'Midnight', free: false, bg: '#232a44', ink: '#eaf0ff', tail: '#232a44' },
   { id: 'sunset', name: 'Sunset', free: false, bg: '#ffb27a', ink: '#3a1f12', tail: '#ffb27a' },
@@ -29,10 +28,10 @@ export type BubbleFont = { id: string; name: string; free: boolean; family: stri
 
 export const BUBBLE_FONTS: BubbleFont[] = [
   { id: 'system', name: 'System', free: true, family: "-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif" },
-  { id: 'mono', name: 'Mono', free: true, family: "ui-monospace,'SF Mono','Cascadia Mono',Menlo,Consolas,monospace" },
-  { id: 'rounded', name: 'Rounded', free: true, family: "ui-rounded,'SF Pro Rounded','Nunito','Segoe UI',system-ui,sans-serif" },
-  { id: 'serif', name: 'Serif', free: true, family: "Georgia,'Iowan Old Style','Times New Roman',serif" },
-  { id: 'condensed', name: 'Condensed', free: true, family: "'Avenir Next Condensed','Arial Narrow','Roboto Condensed',sans-serif" }
+  { id: 'mono', name: 'Mono', free: false, family: "ui-monospace,'SF Mono','Cascadia Mono',Menlo,Consolas,monospace" },
+  { id: 'rounded', name: 'Rounded', free: false, family: "ui-rounded,'SF Pro Rounded','Nunito','Segoe UI',system-ui,sans-serif" },
+  { id: 'serif', name: 'Serif', free: false, family: "Georgia,'Iowan Old Style','Times New Roman',serif" },
+  { id: 'condensed', name: 'Condensed', free: false, family: "'Avenir Next Condensed','Arial Narrow','Roboto Condensed',sans-serif" }
 ]
 
 // Sounds. 'chime' is the bundled default; the middle ones are placeholders to fill
@@ -47,7 +46,7 @@ export const SOUND_OPTIONS: SoundOption[] = [
   { id: 'custom', name: 'Upload your own', free: false, upload: true }
 ]
 
-export const APPEARANCE_DEFAULTS = { theme: 'cream', font: 'mono', sound: 'chime' } as const
+export const APPEARANCE_DEFAULTS = { theme: 'cream', font: 'system', sound: 'chime' } as const
 
 export const themeById = (id: string | undefined): BubbleTheme =>
   BUBBLE_THEMES.find((t) => t.id === id) ?? BUBBLE_THEMES[0]

@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudzie Pro activated</title>
+    <style>
+      :root {
+        --bg: #f3f0ff;
+        --paper: #fffef7;
+        --ink: #202033;
+        --muted: #6f6b86;
+        --purple: #6b5ff0;
+        --border: #1f1f2f;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 28px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 1px 1px, rgba(107, 95, 240, 0.12) 1px, transparent 0) 0 0 / 22px 22px,
+          var(--bg);
+      }
+      main {
+        width: min(720px, 100%);
+        padding: 34px;
+        background: var(--paper);
+        border: 4px solid var(--border);
+        border-radius: 12px;
+        box-shadow: 10px 10px 0 rgba(31, 31, 47, 0.18);
+      }
+      h1 {
+        margin: 0 0 12px;
+        font-size: clamp(28px, 6vw, 52px);
+        line-height: 1.05;
+        letter-spacing: 0;
+      }
+      p { color: var(--muted); line-height: 1.6; }
+      .key {
+        margin: 24px 0 14px;
+        padding: 18px;
+        border: 3px solid var(--border);
+        border-radius: 8px;
+        background: #fff;
+        overflow-wrap: anywhere;
+        font-size: 18px;
+        color: var(--ink);
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 22px;
+      }
+      button, a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        padding: 0 18px;
+        border: 3px solid var(--border);
+        border-radius: 8px;
+        box-shadow: 5px 5px 0 rgba(31, 31, 47, 0.28);
+        color: var(--ink);
+        background: #fff;
+        font: inherit;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      button.primary, a.primary {
+        background: var(--purple);
+        color: #fff;
+      }
+      .hidden { display: none; }
+      .small { font-size: 14px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section id="ok" class="hidden">
+        <h1>Nudzie Pro is ready.</h1>
+        <p>Your license key is below. Open Nudzie -> Nudzie Pro -> paste key -> Activate.</p>
+        <div class="key" id="licenseKey"></div>
+        <p id="emailLine" class="small"></p>
+        <div class="actions">
+          <button class="primary" id="copyBtn" type="button">Copy license key</button>
+          <a href="/#download">Download Nudzie</a>
+        </div>
+      </section>
+
+      <section id="fallback" class="hidden">
+        <h1>Checkout received.</h1>
+        <p>
+          We could not find a license key in this return link. Check your Dodo email receipt, then
+          open Nudzie -> Nudzie Pro -> paste key -> Activate. If the key is missing, contact support.
+        </p>
+        <div class="actions">
+          <a class="primary" href="mailto:mehul@senseibles.com">Contact support</a>
+          <a href="/#pricing">Back to pricing</a>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      (function(){
+        var params=new URLSearchParams(window.location.search);
+        var status=(params.get('status')||params.get('payment_status')||'').toLowerCase();
+        var key=(params.get('license_key')||'').trim();
+        var email=(params.get('email')||params.get('customer_email')||'').trim();
+        var ok=document.getElementById('ok');
+        var fallback=document.getElementById('fallback');
+        var keyEl=document.getElementById('licenseKey');
+        var emailLine=document.getElementById('emailLine');
+        var copyBtn=document.getElementById('copyBtn');
+        var failed=status&&status!=='success'&&status!=='succeeded'&&status!=='paid'&&status!=='completed';
+        if(key&&!failed){
+          ok.classList.remove('hidden');
+          keyEl.textContent=key;
+          if(email) emailLine.textContent='Receipt sent to '+email+'.';
+          copyBtn.addEventListener('click',function(){
+            navigator.clipboard.writeText(key).then(function(){
+              var old=copyBtn.textContent;
+              copyBtn.textContent='Copied';
+              setTimeout(function(){copyBtn.textContent=old;},1300);
+            }).catch(function(){});
+          });
+        } else {
+          fallback.classList.remove('hidden');
+        }
+      })();
+    </script>
+  </body>
+</html>

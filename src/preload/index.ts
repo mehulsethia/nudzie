@@ -64,7 +64,7 @@ contextBridge.exposeInMainWorld('nudzie', {
   getCustomSound: () => ipcRenderer.invoke('sound:getCustom'),
   clearCustomSound: () => ipcRenderer.invoke('sound:clearCustom'),
 
-  // --- License / premium (stub) ---
+  // --- License / premium ---
   licenseStatus: () => ipcRenderer.invoke('license:status'),
   licenseActivate: (key: string) => ipcRenderer.invoke('license:activate', key),
   licenseDeactivate: () => ipcRenderer.invoke('license:deactivate')

@@ -11,17 +11,17 @@ const IDLE_PROMPT =
 const ACTION_PROMPT =
   'Using the previous image as the reference, keep the exact same character - same face, hairstyle, glasses, outfit, colours, art style and proportions. Now show them tilting their head back and drinking from the same water bottle, seen from the side. Same clean pixel-art style, same plain solid pale-blue background, same soft shadow under the feet. Full body, centered, with empty space around them. No text, no frame, no border.'
 
-// A placeholder checkout URL. The license backend is stubbed in this build; swap
-// this (and wire up license.ts) when you connect a real payment provider.
-const CHECKOUT_URL = 'https://example.com/nudzie-pro'
+// Serverless checkout creation redirects to Dodo when configured; if env vars
+// are missing, it shows a friendly website fallback instead of failing silently.
+const CHECKOUT_URL = 'https://nudzie.app/api/create-checkout?source=app&redirect=1'
 
-let prefs: Prefs
+let prefs = {} as Prefs
 let isPro = false
 let hasCustom = false
 let customIdleUrl: string | null = null // stored custom idle sprite (for its tile)
 let processedIdle: string | null = null
 let processedAction: string | null = null
-const APPEARANCE_CUSTOMIZATIONS_FREE_FOR_TESTING = true
+const APPEARANCE_CUSTOMIZATIONS_FREE_FOR_TESTING = false
 const canUseAppearanceCustomizations = (): boolean =>
   APPEARANCE_CUSTOMIZATIONS_FREE_FOR_TESTING || isPro
 
@@ -990,10 +990,10 @@ function renderLicense(s: LicenseStatus): void {
   planBadge.className = 'badge ' + (s.premium ? 'pro' : 'free')
   licenseLocked.classList.toggle('hidden', s.premium)
   licenseActive.classList.toggle('hidden', !s.premium)
-  calFreeNote.classList.toggle('hidden', s.premium) // "one calendar only" note
+  calFreeNote.classList.toggle('hidden', s.premium) // "one calendar source only" note
   licenseLine.textContent = s.premium
-    ? `Thanks for supporting Nudzie! Key ${s.keyMasked ?? ''}`
-    : 'Unlock extra characters, sounds and themes - and support the project.'
+    ? `Nudzie Pro is active on this device. Key ${s.keyMasked ?? ''}`
+    : 'Unlock custom characters, themes, fonts, sounds and unlimited calendars.'
   renderCharacters()
   renderAppearance()
 }
@@ -1011,7 +1011,16 @@ activateBtn.addEventListener('click', async () => {
   }
 })
 deactivateBtn.addEventListener('click', async () => {
-  renderLicense(await q.licenseDeactivate())
+  hide(licenseError)
+  deactivateBtn.disabled = true
+  try {
+    renderLicense(await q.licenseDeactivate())
+  } catch (e) {
+    licenseError.textContent = (e as Error).message
+    show(licenseError)
+  } finally {
+    deactivateBtn.disabled = false
+  }
 })
 $<HTMLButtonElement>('buy-btn').addEventListener('click', () => void q.openExternal(CHECKOUT_URL))
 

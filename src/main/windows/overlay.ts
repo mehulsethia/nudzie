@@ -20,10 +20,10 @@ function keepDockVisible(): void {
 // imports), so the authoritative free/Pro gate lives here.
 const FREE_CHARACTERS = new Set(['male', 'female', 'androgynous'])
 const DEFAULT_CHARACTER = 'male'
-// Bubble personalization free tiers (Pro unlocks locked themes/sounds). Fonts
-// are free for readability. Keep in sync with src/renderer/appearance.ts.
+// Bubble personalization free tiers (Pro unlocks locked themes/fonts/sounds).
+// Keep in sync with src/renderer/appearance.ts.
 const FREE_THEMES = new Set(['cream'])
-const FREE_FONTS = new Set(['system', 'mono', 'rounded', 'serif', 'condensed'])
+const FREE_FONTS = new Set(['system'])
 const FREE_SOUNDS = new Set(['chime'])
 
 /** One reminder to show via the corner-walk character. */
@@ -195,9 +195,9 @@ export function showReminder(reminder: Reminder): void {
     }
 
     // Bubble theme / font / sound - gated in the main process so a tampered
-    // renderer can't unlock them. Temporarily free for appearance testing.
+    // renderer can't unlock them.
     full.bubbleTheme = appearanceUnlocked || FREE_THEMES.has(prefs.bubbleTheme) ? prefs.bubbleTheme : 'cream'
-    full.bubbleFont = appearanceUnlocked || FREE_FONTS.has(prefs.bubbleFont) ? prefs.bubbleFont : 'mono'
+    full.bubbleFont = appearanceUnlocked || FREE_FONTS.has(prefs.bubbleFont) ? prefs.bubbleFont : 'system'
     const soundId = appearanceUnlocked || FREE_SOUNDS.has(prefs.soundChoice) ? prefs.soundChoice : 'chime'
     if (soundId === 'custom') {
       const clip = loadCustomSound()

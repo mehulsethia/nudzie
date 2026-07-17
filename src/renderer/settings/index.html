@@ -140,7 +140,7 @@
           <!-- Provider picker -->
           <div id="cal-picker">
             <button id="cal-free-note" class="cal-note hidden">
-              You're on the free plan - one calendar only. <b>Go Pro</b> to add more.
+              You're on the free plan - one calendar source only. <b>Go Pro</b> to add more.
             </button>
 
             <div class="provider-list">
@@ -189,7 +189,7 @@
               <ol class="steps-list">
                 <li>Google Calendar (web): your calendar → <b>Settings and sharing</b> → <b>Integrate calendar</b> → copy <b>Secret address in iCal format</b>.</li>
                 <li>Outlook / Fastmail / others: look for <b>Publish</b> or an <b>iCal/ICS</b> link.</li>
-                <li>Paste it below - add as many calendars as you like.</li>
+                <li>Paste it below. Free supports one calendar source; Pro unlocks more.</li>
               </ol>
               <label class="field"><span>Calendar link</span><input id="ical-url" type="text" placeholder="https://…/basic.ics  (or webcal://…)" /></label>
               <label class="field"><span>Name (optional)</span><input id="ical-name" type="text" placeholder="Work" /></label>
@@ -350,13 +350,14 @@
               <button id="activate-btn" class="btn btn-primary">Activate</button>
               <button id="buy-btn" class="btn btn-outline">Get Nudzie Pro</button>
             </div>
-            <p id="license-error" class="error hidden"></p>
-            <p class="muted small">Note: the license backend is a stub in this build - activation is disabled and Nudzie runs as the free tier. See PRO-TIER.md.</p>
+            <p class="muted small">One license activates one device. Deactivate before moving Nudzie Pro to another computer.</p>
           </div>
 
           <div id="license-active" class="hidden">
+            <p class="muted small">Nudzie Pro is active on this device. Deactivate before moving this license to another computer.</p>
             <button id="deactivate-btn" class="btn btn-outline">Deactivate on this device</button>
           </div>
+          <p id="license-error" class="error hidden"></p>
         </section>
       </main>
     </div>

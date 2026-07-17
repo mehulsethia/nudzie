@@ -1,9 +1,9 @@
 # Pro-tier boundary
 
-Nudzie preserves Quakpit's open-core license-check flow and free/Pro gating
-shape, but with every real payment-provider reference replaced by a generic
-stub. This document says exactly where the free/Pro boundary sits, what's real
-vs stubbed, and what to fill in to go live.
+Nudzie uses Dodo Payments license-key entitlements for Pro. Checkout happens on
+the website through a serverless API because creating a checkout session needs
+`DODO_API_KEY`. The desktop app calls Dodo's public license endpoints directly
+to activate, validate, and deactivate a license on the current device.
 
 ## The single gate
 
@@ -11,68 +11,146 @@ Everything ultimately checks **one function**:
 
 - `isPremium()` in [`src/main/license.ts`](src/main/license.ts)
 
-Today it returns `false` (free tier) unless:
+It returns true when:
 
-- a real backend is wired up (see below) **and** a valid key is activated, or
-- the env var **`NUDZIE_FORCE_PRO=1`** is set (dev/testing shortcut to exercise
-  every Pro gate without a backend).
+- a Dodo license key is activated on this device,
+- the key validated successfully within the 14-day offline grace window, or
+- the env var **`NUDZIE_FORCE_PRO=1`** is set for local testing.
 
-## Where gating is enforced (free vs Pro decisions)
+## Dodo configuration
 
-| Location | Gate | Behaviour today (free) |
+Recommended Dodo entitlement settings:
+
+- Name: `Nudzie Pro`
+- Fulfillment: `Automatic`
+- Expiry: `No expiration`
+- Activations limit: `1`
+- Activation message:
+  `Nudzie Pro is active on this device. Thanks for supporting Nudzie.`
+
+Serverless checkout env vars:
+
+```bash
+DODO_API_KEY_TEST=...
+DODO_API_KEY_LIVE=...
+DODO_MODE=test
+DODO_PRODUCT_ID_TEST=pdt_0NjNhzbBKhRAFXIfhHWst
+DODO_PRODUCT_ID_LIVE=pdt_0NjNGaI7YglU4NWijdT4B
+NUDZIE_SITE_URL=https://nudzie.app
+DODO_WEBHOOK_SECRET_TEST=...
+DODO_WEBHOOK_SECRET_LIVE=...
+ADMIN_SESSION_SECRET=...
+```
+
+The product IDs are also the code defaults in `api/create-checkout.ts`, so Vercel
+only strictly needs the correct mode-specific API key, `DODO_MODE`,
+`NUDZIE_SITE_URL`, and the mode-specific webhook signing secret. Keep the
+product-id env vars if you want deploy-time overrides. The app itself can be
+pointed at Dodo test mode with `NUDZIE_DODO_MODE=test`.
+
+## Payment and activation flow
+
+1. Website `Get Pro` calls `/api/create-checkout`.
+2. `api/create-checkout.ts` creates a Dodo checkout session with
+   `product_cart: [{ product_id, quantity: 1 }]`.
+3. Dodo returns to `/success` with the license key in the query string.
+4. `site/success.html` shows the key and tells the user:
+   `Open Nudzie -> Nudzie Pro -> paste key -> Activate.`
+5. The app calls `POST /licenses/activate` with
+   `{ license_key, name: deviceId() }`.
+6. The returned `license_key_instance_id` is stored in encrypted `license.bin`.
+7. Startup validation calls `POST /licenses/validate` with the key and instance
+   id. `valid: true` keeps Pro enabled.
+8. Deactivation calls `POST /licenses/deactivate` before clearing the local
+   encrypted entitlement.
+
+## Webhooks
+
+Dodo should send both test and live webhooks to:
+
+```text
+https://nudzie.app/api/dodo-webhook
+```
+
+The handler in `api/dodo-webhook.ts` verifies Dodo's Standard Webhooks signature
+using the `webhook-id`, `webhook-timestamp`, and `webhook-signature` headers.
+Configure both secrets in Vercel because test and live mode use the same URL:
+
+```bash
+DODO_WEBHOOK_SECRET_TEST=...
+DODO_WEBHOOK_SECRET_LIVE=...
+```
+
+Recommended subscribed events:
+
+```text
+payment.succeeded
+payment.failed
+payment.cancelled
+refund.succeeded
+refund.failed
+license_key.created
+entitlement_grant.created
+entitlement_grant.delivered
+entitlement_grant.failed
+entitlement_grant.revoked
+abandoned_checkout.detected
+abandoned_checkout.recovered
+```
+
+The current webhook handler is intentionally stateless: it verifies the event,
+logs sanitized metadata to Vercel logs, and acknowledges with `200`. Add a
+database later if you want durable revenue/download dashboards inside Nudzie.
+
+## Admin dashboard
+
+The private admin dashboard is available at:
+
+```text
+https://nudzie.app/admin
+```
+
+It is gated by `api/admin-login.ts` and only accepts the configured Nudzie admin
+email/password pair. The password is checked by SHA-256 hash; do not commit the
+raw password. Set a strong session secret in Vercel:
+
+```bash
+ADMIN_SESSION_SECRET=...
+```
+
+The dashboard reads live data from:
+
+- Dodo `/payments` for revenue, paid orders, failed/cancelled/refunded payments,
+  recent customers, and recent payment rows.
+- Dodo `/license_keys` for active/disabled/expired licenses, activation usage,
+  and recent license rows.
+- GitHub Releases latest asset counts for macOS/Windows download totals.
+
+There is no database yet, so webhook events are not persisted beyond Vercel logs
+and download counts are based on GitHub release asset totals.
+
+## Where gating is enforced
+
+| Location | Gate | Free behavior |
 | --- | --- | --- |
-| `src/main/windows/overlay.ts` → `showReminder()` | Character asset | Non-Pro is forced to the default `buddy` character, so the UI can't be bypassed. This is the asset-gating pattern — Pro characters get chosen freely, free tier is pinned to the default. |
-| `src/main/ipc.ts` → `cal:connect` / `ical:add` | Calendar count | Free tier is limited to **one** connected calendar across all providers (`FREE_CAL_MSG`). Pro removes the limit. |
-| `src/renderer/settings/settings.ts` → `renderCharacters()` | Character picker | Locked (`!free && !isPro`) tiles show a 🔒 and route to the Pro tab instead of selecting. |
-| `src/renderer/characters.ts` | Asset registry | Each character carries a `free: boolean`. Only the free `buddy` ships in this open build; add Pro characters here (with `free: false`). |
-| `src/main/license.ts` → `CUSTOM_CHARACTER_REQUIRES_PRO` / `canUseCustomCharacter()` | "Make your own character" | Feature flag for the in-app custom-character uploader. Currently **`false`** (usable in the free baseline). Flip to `true` to make it a paid feature — the UI locks itself, the `character:setCustom` IPC refuses, and `showReminder` falls back to the default, all with no other code changes. |
+| `src/main/windows/overlay.ts` -> `showReminder()` | Character asset | Non-Pro is forced to the default `buddy` character. |
+| `src/main/ipc.ts` -> `cal:connect` / `ical:add` | Calendar count | Free tier is limited to one connected calendar across all providers. |
+| `src/main/ipc.ts` -> appearance/custom IPC | Appearance and custom uploads | Non-Pro attempts are rejected in the main process. |
+| `src/renderer/settings/settings.ts` | Settings UI | Locked tiles show a lock and route to the Pro tab instead of selecting. |
+| `src/main/license.ts` -> `canUseCustomCharacter()` | "Make your own character" | Custom character upload is Pro-gated. |
+| `src/main/license.ts` -> `canUseAppearanceCustomizations()` | Bubble, font, sound customization | Only free defaults are selectable without Pro. |
 
-The renderer gates are **UX only** — the authoritative enforcement is always in
-the main process (`isPremium()` in `overlay.ts` / `ipc.ts`), so a tampered
-renderer still can't unlock Pro assets.
+The renderer gates are UX only. Authoritative enforcement lives in the main
+process, so a tampered renderer cannot unlock Pro assets.
 
-## What's real vs stubbed
+## Offline and device behavior
 
-**Real (kept from Quakpit's design):**
-
-- Entitlement caching, encrypted at rest via the OS (`saveEntitlement` /
-  `loadEntitlement` in `store.ts`, written to `license.bin`).
-- The **14-day offline grace window** (`GRACE_MS`) so Pro keeps working offline.
-- The `activate` → `validate` → `deactivate` flow and the `LicenseStatus` shape
-  surfaced to the settings UI.
-- Device-id derivation for the activation label (`deviceId()`).
-
-**Stubbed (no real network calls / provider):**
-
-- `LICENSE_BACKEND_ENABLED = false` — the master switch. While `false`,
-  `activate()` refuses with a friendly "not set up yet" message and the app runs
-  as free tier.
-- `verifyKey(key, label)` — **TODO**: POST to your backend's *activate* endpoint,
-  return `{ instanceId, status, expiresAt }`.
-- `revalidateKey(entitlement)` — **TODO**: POST to your backend's *validate*
-  endpoint; currently just echoes the cached values.
-- `deactivate()` — clears locally; **TODO**: also notify your backend's
-  *deactivate* endpoint.
-- `CHECKOUT_URL` in `settings.ts` — placeholder `https://example.com/nudzie-pro`.
-
-## To wire up a real license check + payment flow
-
-1. Stand up (or buy) a license backend + payment provider (Merchant-of-Record,
-   Stripe, your own server, etc.).
-2. In `src/main/license.ts`:
-   - Set `LICENSE_BACKEND_ENABLED = true`.
-   - Implement `verifyKey()` and `revalidateKey()` against your endpoints,
-     returning the normalized `{ instanceId, status, expiresAt }` shape.
-   - Add `deactivate()`'s backend call.
-3. In `src/renderer/settings/settings.ts`, set `CHECKOUT_URL` to your real
-   checkout link.
-4. Add Pro assets:
-   - Drop new character art through `npm run prepare-assets -- <id>` and register
-     them in `src/renderer/characters.ts` with `free: false`.
-   - (Same pattern extends to Pro sounds/themes — add a registry with a `free`
-     flag and gate the enforcement in the main process next to the character
-     gate in `overlay.ts`.)
-
-No re-architecting is required — the gating structure, entitlement storage,
-offline grace, and UI states are already in place; you're filling in the two
-network calls and flipping one flag.
+- Pro keeps working for 14 days after the last successful validation.
+- If Dodo explicitly validates the key as invalid, revoked, or expired, Pro is
+  disabled after that validation.
+- One Dodo activation maps to one device. With activation limit `1`, the same
+  key cannot be activated on a second device until the first device deactivates.
+- If a user uninstalls and reinstalls on the same device, the license should work
+  again if the encrypted local entitlement is still present. If it was deleted,
+  they must deactivate the old instance in Dodo/admin or contact support before
+  activating again.

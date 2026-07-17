@@ -47,8 +47,10 @@ export async function listUpcoming(minutes = 60): Promise<UpcomingEvent[]> {
   const seen = new Set<string>()
   const out: UpcomingEvent[] = []
   for (const e of [...g, ...i, ...c].sort((a, b) => a.start - b.start)) {
-    if (seen.has(e.id)) continue
+    const eventKey = `${e.title.trim().toLowerCase()}@${e.start}`
+    if (seen.has(e.id) || seen.has(eventKey)) continue
     seen.add(e.id)
+    seen.add(eventKey)
     out.push(e)
   }
   return out

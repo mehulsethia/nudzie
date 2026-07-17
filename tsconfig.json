@@ -12,5 +12,5 @@
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "types": ["node"]
   },
-  "include": ["src/**/*.ts", "electron.vite.config.ts"]
+  "include": ["src/**/*.ts", "api/**/*.ts", "electron.vite.config.ts"]
 }

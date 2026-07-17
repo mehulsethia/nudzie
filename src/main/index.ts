@@ -9,6 +9,7 @@ import { applyDockMode, applyAppIcon } from './platform'
 import { initAutoUpdate } from './updater'
 import * as calendar from './calendar'
 import * as license from './license'
+import { shouldOpenSettingsOnActivate } from './activation'
 
 // Set the app name early (before it's read for the menu / About / name). In a
 // packaged build this comes from electron-builder's productName; in dev we're
@@ -68,7 +69,7 @@ app.whenReady().then(async () => {
   await calendar.init().catch(() => undefined)
   startScheduler()
 
-  // Re-validate the license (stub today; offline grace keeps Pro working later).
+  // Re-validate the license; offline grace keeps Pro working temporarily.
   void license.validate()
 
   // Check GitHub Releases for updates (packaged builds only).
@@ -81,7 +82,7 @@ app.whenReady().then(async () => {
 // window open on every reminder. When the overlay is on screen it counts as a
 // visible window, so a button click no longer opens the app.
 app.on('activate', (_event, hasVisibleWindows) => {
-  if (!hasVisibleWindows) openSettings()
+  if (shouldOpenSettingsOnActivate(hasVisibleWindows)) openSettings()
 })
 
 // Stay alive in the background even when no window is visible.

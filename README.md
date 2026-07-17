@@ -39,8 +39,8 @@ Upload an *idle* pose and an *action* pose; Nudzie removes the background, trims
 and starts using your character (and its face becomes the tray icon) — all
 processed **on your device**, nothing uploaded. Settings shows a copy-paste AI
 prompt recipe for generating a matching pair. This is a per-user custom
-character; it's wired as a **Pro-gated** capability but currently enabled for
-everyone (see [PRO-TIER.md](PRO-TIER.md), `CUSTOM_CHARACTER_REQUIRES_PRO`).
+character; it is a **Pro-gated** capability. Use `NUDZIE_FORCE_PRO=1` for local
+testing (see [PRO-TIER.md](PRO-TIER.md), `CUSTOM_CHARACTER_REQUIRES_PRO`).
 
 **B) Build-time (ships a new built-in character):**
 
@@ -71,8 +71,10 @@ still builds and runs, and iCloud / iCal links work independently.
 ## Pro tier
 
 Nudzie keeps an open-core license-check scaffold (free vs Pro gating) so extra
-characters, sounds, and themes can be added later. The license backend is a
-**stub** today and defaults to the free tier. See [PRO-TIER.md](PRO-TIER.md).
+characters, sounds, and themes can be sold without changing the app's core
+architecture. Pro is backed by Dodo Payments license-key entitlements, with a
+14-day offline grace window and one-device activation. See
+[PRO-TIER.md](PRO-TIER.md).
 
 ## Attribution
 

@@ -59,7 +59,7 @@ const DEFAULT_PREFS: Prefs = {
   characterChosen: false,
 
   bubbleTheme: 'cream',
-  bubbleFont: 'mono',
+  bubbleFont: 'system',
   soundChoice: 'chime',
 
   templatesSeeded: false

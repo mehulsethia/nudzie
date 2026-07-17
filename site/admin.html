@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nudzie Admin</title>
+    <style>
+      :root {
+        --bg: #f5f4ff;
+        --paper: #fffef8;
+        --ink: #202033;
+        --muted: #6f6b86;
+        --line: #222235;
+        --purple: #6b5ff0;
+        --green: #2fbf55;
+        --red: #e45858;
+        --yellow: #ffd65a;
+        --soft: rgba(107, 95, 240, 0.12);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at 1px 1px, rgba(107, 95, 240, 0.1) 1px, transparent 0) 0 0 / 20px 20px,
+          var(--bg);
+        color: var(--ink);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      button, input, select { font: inherit; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+      .hidden { display: none !important; }
+      .shell { max-width: 1240px; margin: 0 auto; padding: 28px; }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 22px;
+      }
+      h1 { margin: 0; font-size: clamp(30px, 4vw, 48px); letter-spacing: 0; line-height: 1.05; }
+      h2 { margin: 0 0 12px; font-size: 20px; }
+      p { color: var(--muted); line-height: 1.5; }
+      .login {
+        width: min(440px, calc(100vw - 32px));
+        margin: 10vh auto;
+        padding: 28px;
+        background: var(--paper);
+        border: 4px solid var(--line);
+        border-radius: 10px;
+        box-shadow: 10px 10px 0 rgba(32, 32, 51, 0.2);
+      }
+      label { display: grid; gap: 8px; margin: 16px 0; color: var(--muted); font-weight: 700; }
+      input {
+        width: 100%;
+        min-height: 46px;
+        padding: 10px 12px;
+        border: 3px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--ink);
+      }
+      .btn {
+        min-height: 44px;
+        padding: 0 16px;
+        border: 3px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        color: var(--ink);
+        box-shadow: 4px 4px 0 rgba(32, 32, 51, 0.2);
+        cursor: pointer;
+        font-weight: 800;
+      }
+      .btn.primary { background: var(--purple); color: #fff; }
+      .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+      .top-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+      .meta { color: var(--muted); font-size: 14px; }
+      .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 18px 0 22px; }
+      .tab {
+        min-height: 38px;
+        padding: 0 14px;
+        border: 3px solid var(--line);
+        border-radius: 999px;
+        background: #fff;
+        cursor: pointer;
+        font-weight: 800;
+      }
+      .tab.active { background: var(--purple); color: #fff; }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+      }
+      .metric, .panel {
+        background: var(--paper);
+        border: 3px solid var(--line);
+        border-radius: 8px;
+        box-shadow: 5px 5px 0 rgba(32, 32, 51, 0.15);
+      }
+      .metric { padding: 16px; min-height: 112px; }
+      .metric .label { color: var(--muted); font-weight: 800; font-size: 13px; text-transform: uppercase; }
+      .metric .value { font-size: 30px; font-weight: 900; margin-top: 8px; overflow-wrap: anywhere; }
+      .metric .sub { color: var(--muted); margin-top: 6px; font-size: 13px; }
+      .panel { padding: 18px; margin-top: 16px; overflow: hidden; }
+      .wide { grid-column: span 2; }
+      .full { grid-column: 1 / -1; }
+      .bar {
+        height: 14px;
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        background: #fff;
+        overflow: hidden;
+      }
+      .bar > span { display: block; height: 100%; background: var(--purple); }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      th, td {
+        padding: 11px 9px;
+        border-bottom: 2px solid rgba(32, 32, 51, 0.12);
+        text-align: left;
+        vertical-align: top;
+      }
+      th { color: var(--muted); font-size: 12px; text-transform: uppercase; }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 24px;
+        padding: 0 8px;
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        background: #fff;
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .pill.ok { background: #dff8e6; }
+      .pill.bad { background: #ffe3e3; }
+      .pill.warn { background: #fff2b8; }
+      .error {
+        margin-top: 12px;
+        padding: 12px;
+        border: 3px solid var(--red);
+        border-radius: 8px;
+        color: #7c1717;
+        background: #ffe8e8;
+      }
+      .empty { padding: 16px; color: var(--muted); background: var(--soft); border-radius: 8px; }
+      @media (max-width: 980px) {
+        .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      }
+      @media (max-width: 640px) {
+        .shell { padding: 18px; }
+        header { align-items: flex-start; flex-direction: column; }
+        .grid { grid-template-columns: 1fr; }
+        .wide { grid-column: span 1; }
+        table { min-width: 680px; }
+        .table-wrap { overflow-x: auto; }
+      }
+    </style>
+  </head>
+  <body>
+    <main id="login" class="login">
+      <h1>Nudzie Admin</h1>
+      <p>Private dashboard.</p>
+      <form id="loginForm">
+        <label>Email<input id="email" type="email" autocomplete="email" required /></label>
+        <label>Password<input id="password" type="password" autocomplete="current-password" required /></label>
+        <button id="loginBtn" class="btn primary" type="submit">Log in</button>
+      </form>
+      <div id="loginError" class="error hidden"></div>
+    </main>
+
+    <main id="dashboard" class="shell hidden">
+      <header>
+        <div>
+          <h1>Nudzie Admin</h1>
+          <div class="meta" id="generatedAt">Loading...</div>
+        </div>
+        <div class="top-actions">
+          <button class="btn" id="refreshBtn" type="button">Refresh</button>
+          <button class="btn" id="logoutBtn" type="button">Log out</button>
+        </div>
+      </header>
+
+      <div class="tabs">
+        <button class="tab active" data-mode="live" type="button">Live</button>
+        <button class="tab" data-mode="test" type="button">Test</button>
+      </div>
+
+      <section class="grid" id="metrics"></section>
+
+      <section class="grid">
+        <div class="panel wide">
+          <h2>Downloads</h2>
+          <div id="downloads"></div>
+        </div>
+        <div class="panel wide">
+          <h2>License Utilization</h2>
+          <div id="licenseHealth"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Recent Payments</h2>
+        <div class="table-wrap" id="paymentsTable"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Recent Licenses</h2>
+        <div class="table-wrap" id="licensesTable"></div>
+      </section>
+
+      <div id="dashError" class="error hidden"></div>
+    </main>
+
+    <script>
+      (function(){
+        var state={data:null,mode:'live'};
+        var login=document.getElementById('login');
+        var dashboard=document.getElementById('dashboard');
+        var loginForm=document.getElementById('loginForm');
+        var loginBtn=document.getElementById('loginBtn');
+        var loginError=document.getElementById('loginError');
+        var dashError=document.getElementById('dashError');
+        var metrics=document.getElementById('metrics');
+        var downloads=document.getElementById('downloads');
+        var licenseHealth=document.getElementById('licenseHealth');
+        var paymentsTable=document.getElementById('paymentsTable');
+        var licensesTable=document.getElementById('licensesTable');
+        var generatedAt=document.getElementById('generatedAt');
+
+        function show(el){el.classList.remove('hidden');}
+        function hide(el){el.classList.add('hidden');}
+        function money(value,currency){
+          return new Intl.NumberFormat('en-US',{style:'currency',currency:currency||'USD'}).format(value||0);
+        }
+        function num(value){return new Intl.NumberFormat('en-US').format(value||0);}
+        function date(value){return value?new Date(value).toLocaleString():'-';}
+        function statusPill(status){
+          var cls=status==='succeeded'||status==='active'?'ok':(status==='failed'||status==='disabled'||status==='expired'?'bad':'warn');
+          return '<span class="pill '+cls+'">'+(status||'-')+'</span>';
+        }
+        function currentMode(){
+          var modes=(state.data&&state.data.modes)||[];
+          return modes.find(function(m){return m.mode===state.mode;})||modes[0]||null;
+        }
+        function metric(label,value,sub){
+          return '<div class="metric"><div class="label">'+label+'</div><div class="value">'+value+'</div><div class="sub">'+(sub||'')+'</div></div>';
+        }
+        function renderMetrics(mode){
+          metrics.innerHTML=[
+            metric('Revenue',money(mode.revenue,mode.currency),money(mode.revenue30,mode.currency)+' in last 30 days'),
+            metric('Paid Orders',num(mode.paidOrders),num(mode.orders7)+' last 7 days / '+num(mode.orders30)+' last 30 days'),
+            metric('Customers',num(mode.customers),num(mode.payments)+' total payment attempts'),
+            metric('Active Licenses',num(mode.activeLicenses),num(mode.licenses)+' total licenses'),
+            metric('Activated Devices',num(mode.activatedDevices),num(mode.unactivatedLicenses)+' unactivated licenses'),
+            metric('Failed/Cancelled',num(mode.failedPayments+mode.cancelledPayments),num(mode.refundedPayments)+' refunded/partial refund'),
+            metric('Mode',mode.mode.toUpperCase(),mode.configured?'Dodo API configured':'Dodo API missing'),
+            metric('Product',mode.productId,'Nudzie Pro')
+          ].join('');
+        }
+        function renderDownloads(data){
+          var d=data.downloads||{assets:[]};
+          if(!d.configured&&d.error){downloads.innerHTML='<div class="empty">'+d.error+'</div>';return;}
+          var rows=(d.assets||[]).map(function(a){
+            return '<tr><td class="mono">'+a.name+'</td><td>'+num(a.downloads)+'</td><td>'+date(a.updatedAt)+'</td></tr>';
+          }).join('');
+          downloads.innerHTML=
+            '<div class="grid" style="grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px">'+
+              metric('Total',num(d.total),'all latest assets')+
+              metric('macOS',num(d.mac),'.dmg downloads')+
+              metric('Windows',num(d.windows),'.exe downloads')+
+              metric('Other',num(d.other),'other assets')+
+            '</div>'+
+            '<div class="meta">'+(d.release||'Latest release')+' / '+(d.publishedAt?date(d.publishedAt):'')+'</div>'+
+            '<div class="table-wrap"><table><thead><tr><th>Asset</th><th>Downloads</th><th>Updated</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+        }
+        function renderLicenseHealth(mode){
+          var pct=Math.max(0,Math.min(100,mode.licenseUtilization||0));
+          licenseHealth.innerHTML=
+            '<p class="meta">Activation usage across issued licenses.</p>'+
+            '<div class="bar"><span style="width:'+pct+'%"></span></div>'+
+            '<p><b>'+pct+'%</b> utilization / '+num(mode.activatedDevices)+' active device activations over '+num(mode.licenses)+' licenses.</p>'+
+            '<p>'+num(mode.disabledLicenses)+' disabled / '+num(mode.expiredLicenses)+' expired / '+num(mode.unactivatedLicenses)+' not activated yet.</p>';
+        }
+        function table(rows,columns,empty){
+          if(!rows||!rows.length) return '<div class="empty">'+empty+'</div>';
+          return '<table><thead><tr>'+columns.map(function(c){return '<th>'+c.label+'</th>';}).join('')+'</tr></thead><tbody>'+
+            rows.map(function(r){return '<tr>'+columns.map(function(c){return '<td>'+c.render(r)+'</td>';}).join('')+'</tr>';}).join('')+
+            '</tbody></table>';
+        }
+        function renderTables(mode){
+          paymentsTable.innerHTML=table(mode.recentPayments,[
+            {label:'Date',render:function(r){return date(r.date);}},
+            {label:'Customer',render:function(r){return r.email||'-';}},
+            {label:'Amount',render:function(r){return money(r.amount,r.currency);}},
+            {label:'Status',render:function(r){return statusPill(r.status);}},
+            {label:'Refund',render:function(r){return r.refundStatus||'-';}},
+            {label:'Payment ID',render:function(r){return '<span class="mono">'+(r.id||'-')+'</span>';}}
+          ],'No payments found for this mode.');
+          licensesTable.innerHTML=table(mode.recentLicenses,[
+            {label:'Date',render:function(r){return date(r.date);}},
+            {label:'Key',render:function(r){return '<span class="mono">'+(r.key||'-')+'</span>';}},
+            {label:'Status',render:function(r){return statusPill(r.status);}},
+            {label:'Activations',render:function(r){return num(r.activations)+' / '+(r.activationLimit==null?'unlimited':num(r.activationLimit));}},
+            {label:'Payment ID',render:function(r){return '<span class="mono">'+(r.paymentId||'-')+'</span>';}},
+            {label:'License ID',render:function(r){return '<span class="mono">'+(r.id||'-')+'</span>';}}
+          ],'No licenses found for this mode.');
+        }
+        function render(){
+          var mode=currentMode();
+          if(!mode) return;
+          generatedAt.textContent='Generated '+date(state.data.generatedAt)+' - '+state.data.admin;
+          document.querySelectorAll('.tab').forEach(function(tab){tab.classList.toggle('active',tab.dataset.mode===state.mode);});
+          renderMetrics(mode);
+          renderDownloads(state.data);
+          renderLicenseHealth(mode);
+          renderTables(mode);
+        }
+        async function loadData(){
+          hide(dashError);
+          var res=await fetch('/api/admin-data',{credentials:'same-origin'});
+          if(res.status===401){hide(dashboard);show(login);return;}
+          var data=await res.json();
+          if(!res.ok) throw new Error(data.error||'Could not load admin data.');
+          state.data=data;
+          hide(login);show(dashboard);
+          if(!currentMode()) state.mode=(data.modes&&data.modes[0]&&data.modes[0].mode)||'live';
+          render();
+        }
+        loginForm.addEventListener('submit',async function(e){
+          e.preventDefault();
+          hide(loginError);
+          loginBtn.disabled=true;
+          try{
+            var res=await fetch('/api/admin-login',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({email:document.getElementById('email').value,password:document.getElementById('password').value})});
+            var data=await res.json();
+            if(!res.ok) throw new Error(data.error||'Login failed.');
+            await loadData();
+          }catch(err){
+            loginError.textContent=err.message||'Login failed.';
+            show(loginError);
+          }finally{
+            loginBtn.disabled=false;
+          }
+        });
+        document.getElementById('refreshBtn').addEventListener('click',function(){loadData().catch(function(err){dashError.textContent=err.message;show(dashError);});});
+        document.getElementById('logoutBtn').addEventListener('click',async function(){
+          await fetch('/api/admin-logout',{method:'POST',credentials:'same-origin'});
+          hide(dashboard);show(login);
+        });
+        document.querySelectorAll('.tab').forEach(function(tab){
+          tab.addEventListener('click',function(){state.mode=tab.dataset.mode;render();});
+        });
+        loadData().catch(function(){show(login);});
+      })();
+    </script>
+  </body>
+</html>
