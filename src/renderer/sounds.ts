@@ -1,11 +1,22 @@
-// A tiny sound helper for the corner-walk overlay (ported/trimmed from QuakPit's
-// sounds module). Ships one free "chime" sample; the Pro build can add more,
-// gated by the license in the main process. Kept simple: decode once, cache,
-// play on demand.
-import chimeUrl from './overlay/notify.mp3'
+// A tiny sound helper for the corner-walk overlay. Sound selection is gated by
+// the main process; this renderer only resolves approved bundled ids and plays
+// custom data URLs. Kept simple: decode once, cache, play on demand.
+import chimeUrl from '../../assets/sound/chime.mp3'
+import kalimbaPluckUrl from '../../assets/sound/kalimba-pluck.mp3'
+import popUrl from '../../assets/sound/pop.mp3'
+import sparkleUrl from '../../assets/sound/sparkle.mp3'
+import steelDrumUrl from '../../assets/sound/steel-drum.mp3'
+import synthBlipUrl from '../../assets/sound/synth-blip.mp3'
+import zenBowlUrl from '../../assets/sound/zen-bowl.mp3'
 
 const URLS: Record<string, string> = {
-  chime: chimeUrl
+  chime: chimeUrl,
+  'kalimba-pluck': kalimbaPluckUrl,
+  pop: popUrl,
+  sparkle: sparkleUrl,
+  'steel-drum': steelDrumUrl,
+  'synth-blip': synthBlipUrl,
+  'zen-bowl': zenBowlUrl
 }
 
 const buffers: Record<string, AudioBuffer> = {}
@@ -13,7 +24,7 @@ const loading: Record<string, Promise<void>> = {}
 
 function load(ctx: AudioContext, id: string): Promise<void> {
   if (buffers[id]) return Promise.resolve()
-  const url = URLS[id]
+  const url = URLS[id] ?? URLS.chime
   if (!url) return Promise.resolve()
   if (!loading[id]) {
     loading[id] = fetch(url)

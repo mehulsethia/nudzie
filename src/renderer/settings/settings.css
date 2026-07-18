@@ -568,7 +568,6 @@ input::placeholder { color: #a7a3bd; }
 .tile .swatch { width: 100%; height: 40px; border-radius: 9px; border: 2.5px solid var(--border); }
 .tile .fontprev { font-size: 30px; line-height: 1; color: var(--ink); }
 .tile .snd-ic { font-size: 24px; line-height: 1; }
-.tile .soon { font-size: 10px; color: var(--muted); }
 
 .recipe summary { font-family: var(--pix); cursor: pointer; font-size: 14px; }
 .recipe-body { margin-top: 10px; font-size: 13px; color: var(--muted); }

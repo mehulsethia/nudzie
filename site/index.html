@@ -284,8 +284,6 @@ nav{position:sticky;top:0;z-index:50;
 .char.sel{background:var(--grape);color:#fff}
 .char .emoji{font-size:1.1rem;line-height:1}
 .char .lock{font-size:.7rem}
-.char .soon{font-size:.62rem;border:1px solid currentColor;border-radius:999px;padding:1px 6px;opacity:.82}
-.char.soon-option{opacity:.82}
 .tsw{position:relative;display:flex;align-items:center;gap:5px;padding:6px 8px 6px 6px;border:3px solid var(--border);border-radius:12px;background:var(--bubble);cursor:pointer;box-shadow:3px 3px 0 var(--border)}
 .tsw.sel{border-color:var(--grape);box-shadow:3px 3px 0 var(--grape-deep)}
 .tsw:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--border)}
@@ -596,9 +594,12 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
         <label>Sound</label>
         <div class="chars" id="sounds">
           <button class="char sel" data-sound="chime">Default chime</button>
-          <button class="char soon-option" data-sound="sparkle">Sparkle <span class="soon">coming soon</span><span class="lock">🔒</span></button>
-          <button class="char soon-option" data-sound="bell">Soft bell <span class="soon">coming soon</span><span class="lock">🔒</span></button>
-          <button class="char soon-option" data-sound="pop">Pop <span class="soon">coming soon</span><span class="lock">🔒</span></button>
+          <button class="char" data-sound="kalimba-pluck">Kalimba pluck <span class="lock">🔒</span></button>
+          <button class="char" data-sound="pop">Pop <span class="lock">🔒</span></button>
+          <button class="char" data-sound="sparkle">Sparkle <span class="lock">🔒</span></button>
+          <button class="char" data-sound="steel-drum">Steel drum <span class="lock">🔒</span></button>
+          <button class="char" data-sound="synth-blip">Synth blip <span class="lock">🔒</span></button>
+          <button class="char" data-sound="zen-bowl">Zen bowl <span class="lock">🔒</span></button>
           <button class="char" id="ownSound" data-sound="custom">Upload yours <span class="lock">🔒</span></button>
         </div>
         <label class="ct-up sound-upload hidden" id="soundUploadWrap">Custom sound<input type="file" id="soundUpload" accept="audio/mpeg,audio/wav,audio/x-wav,audio/mp4,audio/m4a,.mp3,.wav,.m4a"></label>
@@ -606,7 +607,7 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
     </div>
     <div class="foot">
       <button class="btn primary" id="playBtn">▶ Preview the nudge</button>
-      <span class="note">3 characters, White, System font and Default chime are free. Pro unlocks themes, extra fonts, custom character and custom sound.</span>
+      <span class="note">3 characters, White, System font and Default chime are free. Pro unlocks themes, extra fonts, custom character, bundled sounds and custom sound.</span>
     </div>
     <div class="custom-try hidden" id="customTry">
       <div class="ct-head">🎨 Try your own character <span class="badge-pro">PRO · free preview</span></div>
@@ -632,6 +633,7 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
         <label class="ct-up">Idle pose<input type="file" id="ctIdle" accept="image/png,image/jpeg,image/webp"></label>
         <label class="ct-up">Action pose<input type="file" id="ctAction" accept="image/png,image/jpeg,image/webp"></label>
       </div>
+      <p class="ct-note">Upload both idle and action poses to use this character.</p>
       <p class="ct-note">Processed on your device - nothing is uploaded. This is a free preview; buy Pro to use your character for real.</p>
       <p class="error hidden" id="ctErr"></p>
     </div>
@@ -685,7 +687,7 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
         <li><span class="mark">+</span><span>All bubble colours: Grape, Midnight, Sunset, Mint, Bubblegum, Lemon, Cloud, and Sky</span></li>
         <li><span class="mark">+</span><span>All message fonts: Mono, Rounded, Serif, and Condensed</span></li>
         <li><span class="mark">+</span><span>Bring your own pixel character for real nudges</span></li>
-        <li><span class="mark">+</span><span>Upload your own reminder sound</span></li>
+        <li><span class="mark">+</span><span>All bundled reminder sounds, plus your own upload</span></li>
         <li><span class="mark">+</span><span>Combine multiple calendars at once</span></li>
       </ul>
       <a class="btn primary" id="getProBtn" href="/api/create-checkout?source=site&redirect=1">Get Pro</a>
@@ -713,7 +715,7 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
   <div class="faq">
     <details><summary>Which calendars work?</summary><p>Google Calendar, Apple iCloud (via CalDAV), and any public iCal / .ics link. It's read-only - Nudzie never edits or deletes your events.</p></details>
     <details><summary>Does it work over fullscreen apps?</summary><p>Yes. The buddy floats above everything, including fullscreen video calls, and never blocks your clicks - it stays out of the way until it's time to nudge.</p></details>
-    <details><summary>What's free, and what's Pro?</summary><p>Free gives you three base characters, one calendar source, unlimited manual and repeating reminders, your own message, the White bubble, System font, and Default chime. Pro is a one-time $9.99 and unlocks all bubble colours, all extra fonts, custom character use, custom sound upload, and combining multiple calendars.</p></details>
+    <details><summary>What's free, and what's Pro?</summary><p>Free gives you three base characters, one calendar source, unlimited manual and repeating reminders, your own message, the White bubble, System font, and Default chime. Pro is a one-time $9.99 and unlocks all bubble colours, all extra fonts, custom character use, bundled sounds, custom sound upload, and combining multiple calendars.</p></details>
     <details><summary>Why does Nudzie ask for Google Calendar access?</summary><p>Nudzie reads your primary Google Calendar only to find upcoming events and show reminder nudges before meetings. Access is read-only, processed on your device, and Nudzie never edits calendar events or sends calendar data to a server.</p></details>
     <details><summary>What about my privacy?</summary><p>Reminder and calendar data stays on your device. No telemetry or analytics. Calendar data stays in memory; only an encrypted sign-in token can be saved, and only with your permission. Pro purchases are handled by Dodo Payments.</p></details>
     <details><summary>Which platforms?</summary><p>macOS (Apple Silicon &amp; Intel) and Windows (x64 &amp; ARM). Same buddy, same features, on whichever desktop you use. Linux can follow.</p></details>
@@ -863,18 +865,20 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
   var playBtn=document.getElementById('playBtn');
   var soundsEl=document.getElementById('sounds'),soundUpload=document.getElementById('soundUpload'),soundUploadWrap=document.getElementById('soundUploadWrap');
   var soundChoice='chime',customSoundUrl=null;
+  var SOUND_URLS={
+    chime:'/assets/sound/chime.mp3',
+    'kalimba-pluck':'/assets/sound/kalimba-pluck.mp3',
+    pop:'/assets/sound/pop.mp3',
+    sparkle:'/assets/sound/sparkle.mp3',
+    'steel-drum':'/assets/sound/steel-drum.mp3',
+    'synth-blip':'/assets/sound/synth-blip.mp3',
+    'zen-bowl':'/assets/sound/zen-bowl.mp3'
+  };
   function builderMsg(){ return (msgIn&&msgIn.value)||'Time for water 💧'; }
   function playSelectedSound(){
     if(soundChoice==='custom'&&customSoundUrl){var a=new Audio(customSoundUrl);a.volume=0.55;a.play().catch(function(){});return;}
-    if(soundChoice!=='chime') return;
-    try{
-      var AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
-      var ctx=new AC(),osc=ctx.createOscillator(),gain=ctx.createGain();
-      osc.type='sine';osc.frequency.setValueAtTime(880,ctx.currentTime);osc.frequency.exponentialRampToValueAtTime(1320,ctx.currentTime+0.12);
-      gain.gain.setValueAtTime(0.0001,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(0.18,ctx.currentTime+0.02);gain.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.24);
-      osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+0.25);
-      setTimeout(function(){ctx.close&&ctx.close();},450);
-    }catch(e){}
+    var src=SOUND_URLS[soundChoice]||SOUND_URLS.chime;
+    try{var a=new Audio(src);a.volume=0.55;a.play().catch(function(){});}catch(e){}
   }
   function playPreview(){ playSelectedSound(); if(previewScene) playNudge(previewScene,{loop:false,msg:builderMsg()}); }
   playBtn&&playBtn.addEventListener('click',playPreview);
@@ -916,7 +920,7 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
     if(pop) pop.style.setProperty('--pop-font',b.getAttribute('data-font'));
     playPreview();
   });
-  // builder: sound options match the app's Sound tab. Coming-soon choices are selectable, but silent.
+  // builder: sound options match the app's Sound tab.
   soundsEl&&soundsEl.addEventListener('click',function(e){
     var b=e.target.closest('.char'); if(!b)return;
     soundsEl.querySelectorAll('.char').forEach(function(c){c.classList.remove('sel')}); b.classList.add('sel');

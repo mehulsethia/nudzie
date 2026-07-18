@@ -47,6 +47,7 @@ export type Reminder = {
   // Bubble personalization (gated in showReminder where needed; free is pinned).
   bubbleTheme?: string
   bubbleFont?: string
+  soundChoice?: string // bundled sound id; custom is carried by soundUrl
   soundUrl?: string // custom sound data URL (Pro); overrides the default chime
 }
 
@@ -199,6 +200,7 @@ export function showReminder(reminder: Reminder): void {
     full.bubbleTheme = appearanceUnlocked || FREE_THEMES.has(prefs.bubbleTheme) ? prefs.bubbleTheme : 'cream'
     full.bubbleFont = appearanceUnlocked || FREE_FONTS.has(prefs.bubbleFont) ? prefs.bubbleFont : 'system'
     const soundId = appearanceUnlocked || FREE_SOUNDS.has(prefs.soundChoice) ? prefs.soundChoice : 'chime'
+    full.soundChoice = soundId
     if (soundId === 'custom') {
       const clip = loadCustomSound()
       if (clip) full.soundUrl = clip // else: no clip → overlay plays the default chime

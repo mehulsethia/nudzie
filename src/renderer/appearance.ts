@@ -34,15 +34,18 @@ export const BUBBLE_FONTS: BubbleFont[] = [
   { id: 'condensed', name: 'Condensed', free: false, family: "'Avenir Next Condensed','Arial Narrow','Roboto Condensed',sans-serif" }
 ]
 
-// Sounds. 'chime' is the bundled default; the middle ones are placeholders to fill
-// with real audio later; 'custom' lets a Pro user upload their own (<= 5s).
-export type SoundOption = { id: string; name: string; free: boolean; comingSoon?: boolean; upload?: boolean }
+// Sounds. 'chime' is the bundled default; the rest are Pro-gated in the main
+// process. 'custom' lets a Pro user upload their own (<= 5s).
+export type SoundOption = { id: string; name: string; free: boolean; upload?: boolean }
 
 export const SOUND_OPTIONS: SoundOption[] = [
   { id: 'chime', name: 'Default chime', free: true },
-  { id: 'sparkle', name: 'Sparkle', free: false, comingSoon: true },
-  { id: 'bell', name: 'Soft bell', free: false, comingSoon: true },
-  { id: 'pop', name: 'Pop', free: false, comingSoon: true },
+  { id: 'kalimba-pluck', name: 'Kalimba pluck', free: false },
+  { id: 'pop', name: 'Pop', free: false },
+  { id: 'sparkle', name: 'Sparkle', free: false },
+  { id: 'steel-drum', name: 'Steel drum', free: false },
+  { id: 'synth-blip', name: 'Synth blip', free: false },
+  { id: 'zen-bowl', name: 'Zen bowl', free: false },
   { id: 'custom', name: 'Upload your own', free: false, upload: true }
 ]
 

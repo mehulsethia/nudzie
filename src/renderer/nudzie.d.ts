@@ -16,6 +16,7 @@ declare global {
     sound?: boolean
     bubbleTheme?: string
     bubbleFont?: string
+    soundChoice?: string
     soundUrl?: string
   }
 

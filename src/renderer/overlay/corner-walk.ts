@@ -25,6 +25,7 @@ export type ReminderView = {
   sound?: boolean
   bubbleTheme?: string
   bubbleFont?: string
+  soundChoice?: string // bundled sound id; custom is carried by soundUrl
   soundUrl?: string // custom sound clip (data URL); overrides the default chime
 }
 
@@ -92,7 +93,7 @@ export class CornerWalk {
     this.refs.bubble.style.setProperty('--bubble-ink', theme.ink)
     this.refs.bubble.style.setProperty('--bubble-font', font.family)
 
-    if (r.sound !== false) this.playChime(r.soundUrl)
+    if (r.sound !== false) this.playChime(r.soundChoice, r.soundUrl)
 
     await this.walkIn()
     if (r.kind === 'summary') this.showSummary(r.message, r.items ?? [])
@@ -101,12 +102,12 @@ export class CornerWalk {
   }
 
   // ---- sound ----
-  private playChime(url?: string): void {
+  private playChime(soundChoice = 'chime', url?: string): void {
     try {
       if (!this.audioCtx) this.audioCtx = new AudioContext()
       if (this.audioCtx.state === 'suspended') void this.audioCtx.resume()
       if (url) playSoundUrl(this.audioCtx, url)
-      else playSound(this.audioCtx, 'chime')
+      else playSound(this.audioCtx, soundChoice === 'custom' ? 'chime' : soundChoice)
     } catch {
       /* audio is a nice-to-have */
     }

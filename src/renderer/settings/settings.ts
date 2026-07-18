@@ -605,7 +605,6 @@ function apprTile(o: {
   name: string
   selected: boolean
   locked: boolean
-  soon?: boolean
   fill: (tile: HTMLElement) => void
   onClick: () => void
 }): HTMLElement {
@@ -616,12 +615,6 @@ function apprTile(o: {
   name.className = 'tile-name'
   name.textContent = o.name
   tile.append(name)
-  if (o.soon) {
-    const s = document.createElement('span')
-    s.className = 'soon'
-    s.textContent = 'coming soon'
-    tile.append(s)
-  }
   if (o.locked) {
     const lk = document.createElement('span')
     lk.className = 'lock'
@@ -694,16 +687,14 @@ function renderAppearance(): void {
         name: isUpload && hasCustomSound ? 'Your sound' : s.name,
         selected: prefs.soundChoice === s.id,
         locked,
-        soon: s.comingSoon,
         fill: (tile) => {
           const ic = document.createElement('span')
           ic.className = 'snd-ic'
-          ic.textContent = isUpload ? '⬆️' : s.comingSoon ? '🔒' : '🔊'
+          ic.textContent = isUpload ? '⬆️' : '🔊'
           tile.append(ic)
         },
         onClick: () => {
           if (locked) return showTab('pro')
-          if (s.comingSoon) return
           if (isUpload) {
             if (hasCustomSound) {
               prefs.soundChoice = 'custom'
