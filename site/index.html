@@ -153,8 +153,6 @@ nav{position:sticky;top:0;z-index:50;
 .hero .lede b{color:var(--on-ground);font-weight:600}
 .cta-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
 .cta-sub{font-size:.9rem;color:var(--on-ground-muted);margin:16px 0 0}
-.install-note{font-size:.78rem;color:var(--on-ground-muted);line-height:1.55;margin:12px 0 0;max-width:62ch}
-.install-note b{color:var(--on-ground)}
 .see-link{color:var(--grape-text);text-decoration:none;font-weight:600;font-family:'Pixelify Sans'}
 .see-link:hover{text-decoration:underline}
 .hero-right{display:flex;flex-direction:column;gap:14px}
@@ -168,6 +166,11 @@ nav{position:sticky;top:0;z-index:50;
   .hero-grid{grid-template-columns:1fr;gap:32px}
   .hero .lede{max-width:52ch}
 }
+
+/* ---------- install note ---------- */
+.install-disclaimer{padding:0 0 38px;margin-top:-14px}
+.install-disclaimer .note{border-top:2px dashed color-mix(in srgb,var(--border) 22%,transparent);border-bottom:2px dashed color-mix(in srgb,var(--border) 22%,transparent);padding:14px 0;color:var(--on-ground-muted);font-size:.88rem;line-height:1.55}
+.install-disclaimer b{color:var(--on-ground)}
 
 /* ---------- the hero scene (atmospheric - the character pops from a bubble) ---------- */
 .scene{
@@ -446,7 +449,6 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
         <a class="btn" href="https://github.com/mehulsethia/nudzie-releases/releases/latest/download/Nudzie-Setup.exe">⬇ Download for Windows</a>
       </div>
       <p class="cta-sub">Free · macOS &amp; Windows · No account needed · <a class="see-link" href="#build">see it move ↓</a></p>
-      <p class="install-note">🔐 First launch: macOS may show an unidentified-developer warning because Nudzie is not Apple-signed yet. Open <b>System Settings → Privacy &amp; Security → Open Anyway</b>, or right-click the app and choose <b>Open</b>. Windows may show a SmartScreen warning because the installer is not code-signed yet; choose <b>More info → Run anyway</b> if you trust this download.</p>
     </div>
 
     <div class="hero-right">
@@ -480,6 +482,10 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
     </div>
   </div>
 </header>
+
+<section class="install-disclaimer wrap" aria-label="Install note">
+  <p class="note"><b>Install note:</b> Nudzie is ad-hoc signed on macOS, but not Developer ID notarized yet. macOS may ask for <b>right-click → Open</b> or <b>System Settings → Privacy &amp; Security → Open Anyway</b>. Windows may show SmartScreen until code signing is set up.</p>
+</section>
 
 <!-- how it works -->
 <section class="section wrap" id="how">
@@ -668,7 +674,6 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
       </ul>
       <a class="btn" href="https://github.com/mehulsethia/nudzie-releases/releases/latest/download/Nudzie.dmg">Download free</a>
       <p class="after">No account needed. macOS and Windows.</p>
-      <p class="after">First launch may need macOS “Open Anyway” or Windows “Run anyway” because current builds are unsigned.</p>
     </div>
     <div class="price pro">
       <div class="badge">one-time - yours forever</div>
