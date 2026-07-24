@@ -271,7 +271,7 @@ nav{position:sticky;top:0;z-index:50;
 
 /* ---------- builder ---------- */
 .builder{background:var(--bubble);border:4px solid var(--border);border-radius:24px;box-shadow:10px 10px 0 var(--shadow);padding:26px;display:grid;grid-template-columns:1fr;gap:24px}
-.builder .preview{background:linear-gradient(180deg,color-mix(in srgb,var(--grape) 17%,var(--bubble)),color-mix(in srgb,var(--grape) 4%,var(--bubble)));border:3px solid var(--border);border-radius:16px;position:relative;overflow:hidden;min-height:380px}
+.builder .preview{background:linear-gradient(180deg,color-mix(in srgb,var(--grape) 17%,var(--bubble)),color-mix(in srgb,var(--grape) 4%,var(--bubble)));border:3px solid var(--border);border-radius:16px;position:relative;overflow:hidden;min-height:440px}
 .builder .preview .pop{font-size:.92em}
 .builder .controls label{display:block;font-family:'Pixelify Sans';font-size:.82rem;color:var(--bubble-muted);margin:0 0 8px}
 .builder .controls .field{margin-bottom:20px}
@@ -324,7 +324,7 @@ nav{position:sticky;top:0;z-index:50;
 .toggle input{width:18px;height:18px;accent-color:var(--grape)}
 .builder .foot{grid-column:1/-1;display:flex;align-items:center;gap:14px;flex-wrap:wrap;border-top:2px dashed color-mix(in srgb,var(--border) 30%,transparent);padding-top:18px}
 .builder .foot .note{font-size:.8rem;color:var(--bubble-muted)}
-@media(max-width:760px){.builder .preview{min-height:320px}}
+@media(max-width:760px){.builder .preview{min-height:380px}}
 
 /* ---------- why grid ---------- */
 .why{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;align-items:stretch}
@@ -544,7 +544,7 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
       <div class="actor">
         <div class="pop" data-pop>
           <div class="who"><b></b>Nudzie · now</div>
-          <div class="msg" data-msg>Time for water 💧</div>
+          <div class="msg" data-msg>Call with Jack 📞</div>
           <div class="acts"><button class="yes">Got it</button><button class="no">+15m</button></div>
         </div>
         <div class="pet" data-pet>
@@ -593,7 +593,7 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
       </div>
       <div class="field">
         <label>Message</label>
-        <input class="msg-in" id="msgIn" value="Time for water 💧" maxlength="42" aria-label="Reminder message">
+        <input class="msg-in" id="msgIn" value="Call with Jack 📞" maxlength="42" aria-label="Reminder message">
       </div>
       <div class="field">
         <label>Sound</label>
@@ -690,11 +690,11 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
       <div class="terms">Everything in Free, plus the personal stuff.</div>
       <div class="list-label">Unlocks</div>
       <ul>
-        <li><span class="mark">+</span><span>All bubble colours: Grape, Midnight, Sunset, Mint, Bubblegum, Lemon, Cloud, and Sky</span></li>
-        <li><span class="mark">+</span><span>All message fonts: Mono, Rounded, Serif, and Condensed</span></li>
         <li><span class="mark">+</span><span>Bring your own pixel character for real nudges</span></li>
-        <li><span class="mark">+</span><span>All bundled reminder sounds, plus your own upload</span></li>
         <li><span class="mark">+</span><span>Combine multiple calendars at once</span></li>
+        <li><span class="mark">+</span><span>All bubble colours: Grape, Midnight, Sunset, Mint, Bubblegum, Lemon, Cloud, Sky — plus any custom colour you pick</span></li>
+        <li><span class="mark">+</span><span>All message fonts: Mono, Rounded, Serif, and Condensed</span></li>
+        <li><span class="mark">+</span><span>All bundled reminder sounds, plus your own upload</span></li>
       </ul>
       <a class="btn primary" id="getProBtn" href="/api/create-checkout?source=site&redirect=1">Get Pro</a>
       <p class="after">Activate in the app. One device at a time.</p>
@@ -880,7 +880,7 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
     'synth-blip':'/assets/sound/synth-blip.mp3',
     'zen-bowl':'/assets/sound/zen-bowl.mp3'
   };
-  function builderMsg(){ return (msgIn&&msgIn.value)||'Time for water 💧'; }
+  function builderMsg(){ return (msgIn&&msgIn.value)||'Call with Jack 📞'; }
   function playSelectedSound(){
     if(soundChoice==='custom'&&customSoundUrl){var a=new Audio(customSoundUrl);a.volume=0.55;a.play().catch(function(){});return;}
     var src=SOUND_URLS[soundChoice]||SOUND_URLS.chime;
