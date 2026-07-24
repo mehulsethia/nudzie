@@ -559,8 +559,35 @@ input::placeholder { color: #a7a3bd; }
 .tile img { width: auto; height: 150px; max-width: 100%; object-fit: contain; image-rendering: pixelated; }
 .tile-name { font-family: var(--pix); font-size: 13px; }
 .tile.selected { border-color: var(--grape); box-shadow: 5px 5px 0 var(--grape-deep); }
+/* "Trying it out" state: a locked Pro option being previewed but not saved.
+   Dashed (vs. solid .selected) so it reads as tentative, not applied. */
+.tile.previewing { border-color: var(--grape); border-style: dashed; box-shadow: 5px 5px 0 var(--grape-deep); }
+.tile.previewing.locked { opacity: 1; }
 .tile.locked { opacity: 0.75; }
 .tile .lock { position: absolute; top: 8px; right: 8px; font-size: 14px; }
+
+/* "Try before you buy" banner beneath the appearance preview. */
+.preview-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 3px dashed var(--border);
+  background: rgba(107, 95, 240, 0.06);
+  font-size: 12px;
+  color: var(--ink);
+}
+.preview-note.active { background: rgba(107, 95, 240, 0.14); font-weight: 600; }
+.preview-note #preview-note-cta {
+  font-family: var(--pix);
+  color: var(--grape-deep);
+  text-decoration: none;
+  border-bottom: 2px solid var(--grape);
+  padding-bottom: 1px;
+}
+.preview-note #preview-note-cta:hover { color: var(--grape); }
 
 /* smaller tiles for theme / font / sound pickers */
 .small-tiles { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); }

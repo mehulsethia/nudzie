@@ -8,6 +8,13 @@ directories:
 
 afterPack: scripts/ad-hoc-sign-mac.cjs
 
+# Runs after electron-builder code-signs the app. scripts/notarize.js submits the
+# signed .app to Apple's notary service — but only when the APPLE_* env vars are
+# set (see .env.example / NOTARIZATION_SETUP.md). Until then it no-ops so builds
+# still succeed. NOTE: `notarize: false` in the mac block below disables
+# electron-builder's built-in notarizer so this hook is the single source of truth.
+afterSign: scripts/notarize.js
+
 files:
   - out/**/*
   - package.json

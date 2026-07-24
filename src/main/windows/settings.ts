@@ -5,6 +5,13 @@ let win: BrowserWindow | null = null
 
 /** Opens (or focuses) the settings window. */
 export function openSettings(): void {
+  // Creating a BrowserWindow before the app is ready throws ("Cannot create
+  // BrowserWindow before app is ready"). macOS can emit `activate` during launch
+  // before whenReady resolves — notably on a duplicate instance that's quitting
+  // via the single-instance lock. Ignore those early calls; the normal whenReady
+  // path opens the window once it's safe.
+  if (!app.isReady()) return
+
   if (win && !win.isDestroyed()) {
     win.show()
     win.focus()

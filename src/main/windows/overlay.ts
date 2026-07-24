@@ -19,7 +19,7 @@ function keepDockVisible(): void {
 // (src/renderer/characters.ts) — the main process can't import it (Vite asset
 // imports), so the authoritative free/Pro gate lives here.
 const FREE_CHARACTERS = new Set(['male', 'female', 'androgynous'])
-const DEFAULT_CHARACTER = 'male'
+const DEFAULT_CHARACTER = 'androgynous'
 // Bubble personalization free tiers (Pro unlocks locked themes/fonts/sounds).
 // Keep in sync with src/renderer/appearance.ts.
 const FREE_THEMES = new Set(['cream'])

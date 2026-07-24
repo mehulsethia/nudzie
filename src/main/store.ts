@@ -55,7 +55,7 @@ const DEFAULT_PREFS: Prefs = {
   dockIcon: true,
   targetDisplay: 'cursor',
 
-  character: 'male',
+  character: 'androgynous',
   characterChosen: false,
 
   bubbleTheme: 'cream',

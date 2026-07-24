@@ -19,7 +19,7 @@ const Jimp = require('jimp')
 const CHARACTER = process.argv[2] || 'buddy'
 // The default identity also becomes the tray icon (and app icon, unless a brand
 // icon exists). Keep in sync with DEFAULT in src/renderer/characters.ts.
-const DEFAULT_CHARACTER = 'male'
+const DEFAULT_CHARACTER = 'androgynous'
 const ROOT = path.join(__dirname, '..')
 // Prefer a per-character raw folder; fall back to the flat assets/raw/ layout.
 const perChar = path.join(ROOT, 'assets', 'raw', CHARACTER)

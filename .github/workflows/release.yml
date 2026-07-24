@@ -10,7 +10,12 @@ on:
   push:
     tags:
       - "v*"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish installers to nudzie-releases (leave OFF to test the signed build without releasing)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -54,10 +59,53 @@ jobs:
             echo "No GOOGLE_OAUTH_JSON secret set; building without bundled Google creds."
           fi
 
+      # macOS ONLY — import the Developer ID Application certificate into the
+      # runner's keychain so electron-builder can sign the .app. The `if` guard
+      # keeps this off the Windows job entirely.
+      - name: Import Developer ID certificate (macOS)
+        if: matrix.platform == 'mac'
+        env:
+          APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          set -euo pipefail
+          CERT_PATH="$RUNNER_TEMP/developer_id.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+
+          # Decode the base64 secret back into a .p12 file.
+          echo "$APPLE_CERTIFICATE_P12_BASE64" | base64 --decode > "$CERT_PATH"
+
+          # Create a temporary keychain and make it the default search list.
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Import the cert and allow codesign to use it without a UI prompt.
+          security import "$CERT_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: \
+            -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Add our keychain to the search list so electron-builder finds the cert.
+          security list-keychain -d user -s "$KEYCHAIN_PATH" login.keychain-db
+
+          # Skip the free ad-hoc signature so it doesn't clobber the real Developer
+          # ID signature. scripts/ad-hoc-sign-mac.cjs early-returns on this. Written
+          # to $GITHUB_ENV so it applies to the Build step below.
+          echo "NUDZIE_SKIP_ADHOC_SIGN=1" >> "$GITHUB_ENV"
+
+      # Tag pushes always publish. Manual (workflow_dispatch) runs publish only
+      # when the `publish` input is checked; otherwise they build + sign +
+      # notarize WITHOUT releasing, so signing can be validated safely.
       - name: Build & publish (${{ matrix.platform }})
-        run: npm run dist:${{ matrix.platform }} -- --publish always
+        run: npm run dist:${{ matrix.platform }} -- --publish ${{ (github.event_name == 'push' || inputs.publish) && 'always' || 'never' }}
         env:
           # Publish target is the public releases repo (see electron-builder.yml).
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-          # No Apple/Windows signing certs — build unsigned.
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          # macOS signing/notarization — consumed by electron-builder + notarize.js
+          # on the mac job. The Developer ID cert is auto-discovered from the
+          # keychain imported in the step above. The Windows build ignores these.
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}

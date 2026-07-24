@@ -1,6 +1,7 @@
 import { CHARACTERS, characterById } from '../characters'
 import { BUBBLE_THEMES, BUBBLE_FONTS, SOUND_OPTIONS, fontById, themeById } from '../appearance'
 import { processCharacterImage, makeTrayFromIdle, makeAppIconFromIdle } from './bg-remove'
+import { playSound } from '../sounds'
 
 const q = window.nudzie
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T
@@ -24,6 +25,41 @@ let processedAction: string | null = null
 const APPEARANCE_CUSTOMIZATIONS_FREE_FOR_TESTING = false
 const canUseAppearanceCustomizations = (): boolean =>
   APPEARANCE_CUSTOMIZATIONS_FREE_FOR_TESTING || isPro
+
+// ---- "Try before you buy": non-Pro live preview of locked Pro options ----
+// A non-Pro user can tap a locked theme/font/sound/character to see it in the
+// preview above. These overrides are ONLY read when rendering the preview; they
+// are NEVER written to prefs via setPrefs, so real reminders keep using the free
+// defaults until the license is activated. (The main process also pins Pro
+// values to free defaults — see src/main/windows/overlay.ts — so a preview can
+// never leak into an actual reminder.)
+const preview = { theme: null as string | null, font: null as string | null, char: null as string | null }
+// A non-Pro user can also upload their own character and see it in the preview
+// (the processed sprite lives in `processedIdle`); this flag just tracks that a
+// custom upload is being previewed so the "preview only" note shows.
+let previewingCustom = false
+const clearPreview = (): void => {
+  preview.theme = null
+  preview.font = null
+  preview.char = null
+  previewingCustom = false
+}
+const anyPreview = (): boolean => !!(preview.theme || preview.font || preview.char || previewingCustom)
+const effTheme = (): string => preview.theme ?? prefs.bubbleTheme
+const effFont = (): string => preview.font ?? prefs.bubbleFont
+
+// Lazily-created AudioContext so previewing a locked sound actually plays it.
+let audioCtx: AudioContext | null = null
+function playPreviewSound(id: string): void {
+  if (!id || id === 'custom') return // 'custom' has no bundled clip to preview
+  try {
+    audioCtx = audioCtx ?? new AudioContext()
+    void audioCtx.resume()
+    playSound(audioCtx, id)
+  } catch {
+    /* audio may be unavailable; a silent preview is fine */
+  }
+}
 
 // ---- Tabs ----
 const navItems = Array.from(document.querySelectorAll<HTMLButtonElement>('.nav-item'))
@@ -68,6 +104,7 @@ function previewMessage(): string {
 }
 
 function currentPreviewSprite(): string {
+  if (preview.char) return characterById(preview.char).idle // Pro character being previewed
   if (processedIdle) return processedIdle
   if (prefs?.character === 'custom' && customIdleUrl) return customIdleUrl
   return characterById(prefs?.character).idle
@@ -75,8 +112,8 @@ function currentPreviewSprite(): string {
 
 function updateAppearancePreview(): void {
   if (!prefs) return
-  const theme = themeById(prefs.bubbleTheme)
-  const font = fontById(prefs.bubbleFont)
+  const theme = themeById(effTheme())
+  const font = fontById(effFont())
   appearanceBubble.style.setProperty('--preview-bubble-bg', theme.bg)
   appearanceBubble.style.setProperty('--preview-bubble-ink', theme.ink)
   appearanceBubble.style.setProperty('--preview-bubble-font', font.family)
@@ -407,9 +444,11 @@ function renderCharacters(): void {
   const unlocked = canUseAppearanceCustomizations()
   for (const c of CHARACTERS) {
     const locked = !c.free && !unlocked
-    const selected = prefs.character === c.id
+    const selected = prefs.character === c.id && !preview.char
+    const previewing = preview.char === c.id
     const tile = document.createElement('button')
-    tile.className = 'tile' + (selected ? ' selected' : '') + (locked ? ' locked' : '')
+    tile.className =
+      'tile' + (selected ? ' selected' : '') + (previewing ? ' previewing' : '') + (locked ? ' locked' : '')
     const img = document.createElement('img')
     img.src = c.idle
     const name = document.createElement('span')
@@ -423,11 +462,19 @@ function renderCharacters(): void {
       tile.append(lk)
     }
     tile.addEventListener('click', () => {
-      if (locked) return showTab('pro')
+      if (locked) {
+        // Preview only — don't save. Real reminders keep the free default.
+        preview.char = c.id
+        renderCharacters()
+        refreshPreviewNote()
+        return
+      }
+      preview.char = null
       prefs.character = c.id
       prefs.characterChosen = true
       void q.setPrefs({ character: c.id, characterChosen: true })
       renderCharacters()
+      refreshPreviewNote()
       updateAppearancePreview()
     })
     charactersEl.append(tile)
@@ -435,7 +482,7 @@ function renderCharacters(): void {
 
   // The user's custom character (if any) gets its own selectable tile.
   if (hasCustom && customIdleUrl) {
-    const selected = prefs.character === 'custom'
+    const selected = prefs.character === 'custom' && !preview.char
     const tile = document.createElement('button')
     tile.className = 'tile' + (selected ? ' selected' : '')
     const img = document.createElement('img')
@@ -445,10 +492,12 @@ function renderCharacters(): void {
     name.textContent = 'Yours'
     tile.append(img, name)
     tile.addEventListener('click', () => {
+      preview.char = null
       prefs.character = 'custom'
       prefs.characterChosen = true
       void q.setPrefs({ character: 'custom', characterChosen: true })
       renderCharacters()
+      refreshPreviewNote()
       updateAppearancePreview()
     })
     charactersEl.append(tile)
@@ -516,6 +565,12 @@ async function onUpload(input: HTMLInputElement, target: HTMLElement, which: 'id
     if (which === 'idle') processedIdle = processed
     else processedAction = processed
     setPreview(target, processed)
+    // The processed idle sprite now drives the big preview (see
+    // currentPreviewSprite). For non-Pro, flag it so the "preview only" note shows.
+    if (!canUseAppearanceCustomizations() && processedIdle) {
+      previewingCustom = true
+      refreshPreviewNote()
+    }
     updateAppearancePreview()
   } catch (err) {
     customError.textContent = (err as Error).message
@@ -530,6 +585,13 @@ upAction.addEventListener('change', () => void onUpload(upAction, prevAction, 'a
 
 customSave.addEventListener('click', async () => {
   if (!processedIdle || !processedAction) return
+  // Non-Pro: the character is already previewing above; keeping it needs Pro.
+  if (!canUseAppearanceCustomizations()) {
+    previewingCustom = true
+    refreshPreviewNote(true)
+    showTab('pro')
+    return
+  }
   hide(customError)
   customSave.disabled = true
   try {
@@ -560,6 +622,8 @@ customRemove.addEventListener('click', async () => {
   customIdleUrl = null
   processedIdle = null
   processedAction = null
+  previewingCustom = false
+  refreshPreviewNote()
   prevIdle.innerHTML = ''
   prevAction.innerHTML = ''
   upIdle.value = ''
@@ -577,9 +641,13 @@ $('custom-upsell').addEventListener('click', (e) => {
 
 async function initCustom(): Promise<void> {
   const canCustom = await q.canCustomCharacter()
-  customPanel.classList.toggle('hidden', !canCustom)
-  customLocked.classList.toggle('hidden', canCustom)
+  // Always show the upload panel + AI-prompt recipe, even for non-Pro users:
+  // they can build and PREVIEW their own character to decide if it's worth
+  // buying. Only saving/using it (customSave) is gated — see its handler.
+  customPanel.classList.remove('hidden')
+  customLocked.classList.toggle('hidden', canCustom) // "preview free, Pro to keep" note
   customProTag.classList.toggle('hidden', canCustom) // show PRO tag only when gated
+  applyCustomSaveMode(canCustom)
   const existing = await q.getCustomCharacter()
   if (existing) {
     hasCustom = true
@@ -590,6 +658,12 @@ async function initCustom(): Promise<void> {
   }
   renderCharacters()
   updateAppearancePreview()
+}
+
+// The "Use this character" button applies+saves for Pro; for non-Pro it becomes
+// an upsell (the character is already previewing above — keeping it needs Pro).
+function applyCustomSaveMode(canCustom: boolean): void {
+  customSave.textContent = canCustom ? 'Use this character' : 'Activate Pro to use this →'
 }
 
 // ---- Appearance extras: bubble theme, message font, sound (all Pro) ----
@@ -604,12 +678,14 @@ let hasCustomSound = false
 function apprTile(o: {
   name: string
   selected: boolean
+  previewing?: boolean
   locked: boolean
   fill: (tile: HTMLElement) => void
   onClick: () => void
 }): HTMLElement {
   const tile = document.createElement('button')
-  tile.className = 'tile' + (o.selected ? ' selected' : '') + (o.locked ? ' locked' : '')
+  tile.className =
+    'tile' + (o.selected ? ' selected' : '') + (o.previewing ? ' previewing' : '') + (o.locked ? ' locked' : '')
   o.fill(tile)
   const name = document.createElement('span')
   name.className = 'tile-name'
@@ -635,7 +711,8 @@ function renderAppearance(): void {
     themesEl.append(
       apprTile({
         name: t.name,
-        selected: prefs.bubbleTheme === t.id,
+        selected: prefs.bubbleTheme === t.id && !preview.theme,
+        previewing: preview.theme === t.id,
         locked,
         fill: (tile) => {
           const sw = document.createElement('span')
@@ -644,7 +721,12 @@ function renderAppearance(): void {
           tile.append(sw)
         },
         onClick: () => {
-          if (locked) return showTab('pro')
+          if (locked) {
+            preview.theme = t.id // preview only — not saved
+            renderAppearance()
+            return
+          }
+          preview.theme = null
           prefs.bubbleTheme = t.id
           void q.setPrefs({ bubbleTheme: t.id })
           renderAppearance()
@@ -659,7 +741,8 @@ function renderAppearance(): void {
     fontsEl.append(
       apprTile({
         name: f.name,
-        selected: prefs.bubbleFont === f.id,
+        selected: prefs.bubbleFont === f.id && !preview.font,
+        previewing: preview.font === f.id,
         locked,
         fill: (tile) => {
           const p = document.createElement('span')
@@ -669,7 +752,12 @@ function renderAppearance(): void {
           tile.append(p)
         },
         onClick: () => {
-          if (locked) return showTab('pro')
+          if (locked) {
+            preview.font = f.id // preview only — not saved
+            renderAppearance()
+            return
+          }
+          preview.font = null
           prefs.bubbleFont = f.id
           void q.setPrefs({ bubbleFont: f.id })
           renderAppearance()
@@ -684,6 +772,8 @@ function renderAppearance(): void {
     const isUpload = !!s.upload
     soundsEl.append(
       apprTile({
+        // Sounds aren't part of the visual preview; selecting one just plays it.
+        // For non-Pro, a locked sound plays as a preview but isn't saved.
         name: isUpload && hasCustomSound ? 'Your sound' : s.name,
         selected: prefs.soundChoice === s.id,
         locked,
@@ -694,7 +784,12 @@ function renderAppearance(): void {
           tile.append(ic)
         },
         onClick: () => {
-          if (locked) return showTab('pro')
+          if (locked) {
+            // Preview the locked sound (nothing to preview for the upload tile).
+            if (!isUpload) playPreviewSound(s.id)
+            refreshPreviewNote(true)
+            return
+          }
           if (isUpload) {
             if (hasCustomSound) {
               prefs.soundChoice = 'custom'
@@ -705,6 +800,7 @@ function renderAppearance(): void {
             }
             return
           }
+          playPreviewSound(s.id) // let the user hear their pick
           prefs.soundChoice = s.id
           void q.setPrefs({ soundChoice: s.id })
           renderAppearance()
@@ -712,8 +808,36 @@ function renderAppearance(): void {
       })
     )
   }
+  refreshPreviewNote()
   updateAppearancePreview()
 }
+
+// The "preview only — get Pro" banner shown under the appearance preview. It
+// stays visible for non-Pro users as a hint, and switches to an active-preview
+// state (with a CTA) when they're previewing a locked option. `soundPreviewed`
+// forces the active state after playing a locked sound (which leaves no visible
+// swatch to indicate a preview is in effect).
+const previewNote = document.getElementById('appearance-preview-note') as HTMLElement
+const previewNoteText = document.getElementById('preview-note-text') as HTMLElement
+const previewNoteCta = document.getElementById('preview-note-cta') as HTMLAnchorElement
+function refreshPreviewNote(soundPreviewed = false): void {
+  if (!previewNote) return
+  if (canUseAppearanceCustomizations()) {
+    previewNote.classList.add('hidden') // Pro: no preview messaging needed
+    return
+  }
+  previewNote.classList.remove('hidden')
+  const active = anyPreview() || soundPreviewed
+  previewNote.classList.toggle('active', active)
+  previewNoteText.textContent = active
+    ? '👀 Preview only — activate Nudzie Pro to keep this.'
+    : '🔒 Tap any locked option to try it in the preview above.'
+  previewNoteCta.classList.toggle('hidden', !active)
+}
+previewNoteCta?.addEventListener('click', (e) => {
+  e.preventDefault()
+  showTab('pro')
+})
 
 const MAX_SOUND_BYTES = 2 * 1024 * 1024
 const MAX_SOUND_SECONDS = 5
@@ -977,6 +1101,9 @@ const licenseError = $('license-error')
 
 function renderLicense(s: LicenseStatus): void {
   isPro = s.premium
+  // Now Pro: drop any "try before you buy" previews — the real (saved) choices
+  // are what apply, and the picker returns to normal apply-and-save behaviour.
+  if (s.premium) clearPreview()
   planBadge.textContent = s.premium ? 'PRO' : 'Free'
   planBadge.className = 'badge ' + (s.premium ? 'pro' : 'free')
   licenseLocked.classList.toggle('hidden', s.premium)
@@ -985,6 +1112,7 @@ function renderLicense(s: LicenseStatus): void {
   licenseLine.textContent = s.premium
     ? `Nudzie Pro is active on this device. Key ${s.keyMasked ?? ''}`
     : 'Unlock custom characters, themes, fonts, sounds and unlimited calendars for $9.99 once.'
+  applyCustomSaveMode(s.premium) // "Use this character" vs "Activate Pro to use this →"
   renderCharacters()
   renderAppearance()
 }

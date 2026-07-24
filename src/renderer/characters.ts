@@ -23,7 +23,7 @@ export type Character = {
 }
 
 // The default identity (also drives the tray/app icon in scripts/prepare-assets.cjs).
-export const DEFAULT_CHARACTER = 'male'
+export const DEFAULT_CHARACTER = 'androgynous'
 
 export const CHARACTERS: Character[] = [
   { id: 'male', name: 'Male', free: true, idle: maleIdle, action: maleAction },

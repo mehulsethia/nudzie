@@ -191,7 +191,7 @@ export function registerIpc(): void {
   ipcMain.handle('character:clearCustom', () => {
     clearCustomCharacter()
     const wasCustom = getPrefs().character === 'custom'
-    const prefs = setPrefs(wasCustom ? { character: 'male' } : {})
+    const prefs = setPrefs(wasCustom ? { character: 'androgynous' } : {})
     refreshTrayIcon()
     applyAppIcon()
     return prefs

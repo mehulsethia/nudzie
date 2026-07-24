@@ -2,12 +2,35 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
   <dict>
+    <!-- allow-jit: lets V8 (Chromium's JS engine) allocate writable+executable
+         memory for just-in-time compilation. Required by Electron/Chromium under
+         the hardened runtime. -->
     <key>com.apple.security.cs.allow-jit</key>
     <true/>
+
+    <!-- allow-unsigned-executable-memory: permits executable memory pages that
+         are not backed by a code signature. Chromium's JIT and some native
+         modules need this; without it the renderer will crash under hardened
+         runtime. -->
     <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
     <true/>
+
+    <!-- disable-library-validation: allows the app to load libraries/frameworks
+         (and native .node addons) that are not signed by the same Team ID.
+         Needed because Electron loads its own frameworks and third-party native
+         modules. -->
     <key>com.apple.security.cs.disable-library-validation</key>
     <true/>
+
+    <!-- allow-dyld-environment-variables: lets the process honor DYLD_* env vars
+         (e.g. DYLD_LIBRARY_PATH / DYLD_INSERT_LIBRARIES). Electron relies on
+         these during startup; hardened runtime blocks them by default. -->
+    <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+    <true/>
+
+    <!-- network.client: allows outbound network connections. Nudzie needs this
+         for Google Calendar OAuth/sync and auto-update checks. Not part of the
+         four hardened-runtime keys above, but required for the app to function. -->
     <key>com.apple.security.network.client</key>
     <true/>
   </dict>

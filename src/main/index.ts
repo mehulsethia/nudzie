@@ -82,6 +82,10 @@ app.whenReady().then(async () => {
 // window open on every reminder. When the overlay is on screen it counts as a
 // visible window, so a button click no longer opens the app.
 app.on('activate', (_event, hasVisibleWindows) => {
+  // `activate` can fire during launch before the app is ready (e.g. on a
+  // duplicate instance that's quitting via the single-instance lock). Opening a
+  // window then would throw, so wait for the whenReady path to open it instead.
+  if (!app.isReady()) return
   if (shouldOpenSettingsOnActivate(hasVisibleWindows)) openSettings()
 })
 
