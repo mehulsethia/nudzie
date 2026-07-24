@@ -60,7 +60,7 @@ const DEFAULT_PREFS: Prefs = {
   characterChosen: false,
 
   bubbleTheme: 'cream',
-  bubbleColor: '#6b5ff0',
+  bubbleColor: '#ffffff',
   bubbleFont: 'system',
   soundChoice: 'chime',
 

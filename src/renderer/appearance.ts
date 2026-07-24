@@ -53,7 +53,7 @@ export const APPEARANCE_DEFAULTS = { theme: 'cream', font: 'system', sound: 'chi
 
 // Pro "custom bubble colour": bubbleTheme === 'custom' uses the bubbleColor hex.
 export const CUSTOM_THEME_ID = 'custom'
-export const CUSTOM_BUBBLE_DEFAULT = '#6b5ff0'
+export const CUSTOM_BUBBLE_DEFAULT = '#ffffff'
 
 // Pick a readable ink (dark or light) for an arbitrary bubble background hex.
 export function inkForBg(hex: string): string {
