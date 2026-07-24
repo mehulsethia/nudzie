@@ -8,9 +8,9 @@ const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) 
 
 // Copy-paste AI prompts for "make your own character".
 const IDLE_PROMPT =
-  'Full-body pixel-art character, front view, standing and smiling. [DESCRIBE YOUR CHARACTER - e.g. a young man with short black hair, round glasses, a navy hoodie and grey joggers, brown sneakers]. They are holding a reusable water bottle in one hand, down at their side. Clean, detailed pixel-art style with soft shading; friendly and wholesome. Plain solid pale-blue background, a subtle soft shadow under the feet, the character centered with empty space all around. No text, no frame, no border.'
+  'Full-body pixel-art character, front view, standing and smiling, arms relaxed at their sides, hands empty. [DESCRIBE YOUR CHARACTER — e.g. a young man with short black hair, round glasses, a navy hoodie and grey joggers, brown sneakers]. Clean, detailed pixel-art style with soft shading; friendly and wholesome. Plain solid pale-blue background, a subtle soft shadow under the feet, the character centered with empty space all around. No text, no frame, no border.'
 const ACTION_PROMPT =
-  'Using the previous image as the reference, keep the exact same character - same face, hairstyle, glasses, outfit, colours, art style and proportions. Now show them tilting their head back and drinking from the same water bottle, seen from the side. Same clean pixel-art style, same plain solid pale-blue background, same soft shadow under the feet. Full body, centered, with empty space around them. No text, no frame, no border.'
+  'Using the attached/previous image as the reference, keep the exact same character — [DESCRIBE YOUR CHARACTER AGAIN BRIEFLY]. Now show them holding up a small bell in one hand or paw, giving it a cheerful ring, with a bright, alert, friendly expression as if they\'ve just remembered something for you. Same clean pixel-art style, same plain solid pale-blue background, same soft shadow under the feet. Full body, centered, with empty space around them. No text, no frame, no border.'
 
 // Serverless checkout creation redirects to Dodo when configured; if env vars
 // are missing, it shows a friendly website fallback instead of failing silently.

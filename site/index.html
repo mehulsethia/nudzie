@@ -281,6 +281,8 @@ nav{position:sticky;top:0;z-index:50;
 .char.sel{background:var(--grape);color:#fff}
 .char .emoji{font-size:1.1rem;line-height:1}
 .char .lock{font-size:.7rem}
+.char.is-disabled{opacity:.55;cursor:not-allowed}
+.char.is-disabled:active{transform:none;box-shadow:3px 3px 0 var(--border)}
 .tsw{position:relative;display:flex;align-items:center;gap:5px;padding:6px 8px 6px 6px;border:3px solid var(--border);border-radius:12px;background:var(--bubble);cursor:pointer;box-shadow:3px 3px 0 var(--border)}
 .tsw.sel{border-color:var(--grape);box-shadow:3px 3px 0 var(--grape-deep)}
 .tsw:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--border)}
@@ -878,14 +880,20 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
   msgIn&&msgIn.addEventListener('input',function(){var m=previewScene&&previewScene.querySelector('[data-msg]');if(m)m.textContent=msgIn.value||' ';});
   chars&&chars.addEventListener('click',function(e){
     var b=e.target.closest('.char'); if(!b)return;
+    var charId=b.getAttribute('data-char')||'';
+    if(charId==='custom'){
+      var ct=document.getElementById('customTry'); if(ct) ct.classList.remove('hidden'); // always reveal the uploader
+      if(!customReady()){ // don't select "Upload yours" until both poses are uploaded
+        if(ct) ct.scrollIntoView({behavior:'smooth',block:'nearest'});
+        return;
+      }
+    }
     chars.querySelectorAll('.char').forEach(function(c){c.classList.remove('sel')});
     b.classList.add('sel');
     var emojiChar=b.getAttribute('data-emoji')||'';
-    var charId=b.getAttribute('data-char')||'';
     var pet=previewScene.querySelector('[data-pet]');
     var sprites=pet.querySelectorAll('.sprite'), em=pet.querySelector('.pv-emoji');
     if(charId){ // a free full-body gender character (or 'custom' upload)
-      if(charId==='custom'){ var ct=document.getElementById('customTry'); if(ct) ct.classList.remove('hidden'); }
       setPet(previewScene, charId);
     } else if(emojiChar){ // Pro placeholder: show the emoji as the character
       sprites.forEach(function(s){s.style.display='none';});
@@ -914,12 +922,25 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
     playPreview();
   });
   // builder: sound options match the app's Sound tab.
+  var customSoundBtn=soundsEl&&soundsEl.querySelector('[data-sound="custom"]');
+  // "Custom sound" stays disabled (dimmed + tooltip) until a clip is uploaded.
+  function refreshCustomSound(){
+    if(!customSoundBtn)return;
+    if(customSoundUrl){customSoundBtn.classList.remove('is-disabled');customSoundBtn.removeAttribute('title');customSoundBtn.removeAttribute('aria-disabled');}
+    else{customSoundBtn.classList.add('is-disabled');customSoundBtn.setAttribute('title','Upload a sound clip first');customSoundBtn.setAttribute('aria-disabled','true');}
+  }
+  refreshCustomSound();
   soundsEl&&soundsEl.addEventListener('click',function(e){
     var b=e.target.closest('.char'); if(!b)return;
+    var snd=b.getAttribute('data-sound')||'chime';
+    if(snd==='custom'&&!customSoundUrl){ // no clip yet: reveal uploader + open picker, don't select
+      if(soundUploadWrap) soundUploadWrap.classList.remove('hidden');
+      if(soundUpload) soundUpload.click();
+      return;
+    }
     soundsEl.querySelectorAll('.char').forEach(function(c){c.classList.remove('sel')}); b.classList.add('sel');
-    soundChoice=b.getAttribute('data-sound')||'chime';
+    soundChoice=snd;
     if(soundUploadWrap) soundUploadWrap.classList.toggle('hidden',soundChoice!=='custom');
-    if(soundChoice==='custom'&&soundUpload&&!customSoundUrl) soundUpload.click();
     playPreview();
   });
   soundUpload&&soundUpload.addEventListener('change',function(){
@@ -927,13 +948,14 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
     if(customSoundUrl) URL.revokeObjectURL(customSoundUrl);
     customSoundUrl=URL.createObjectURL(file);
     soundChoice='custom';
+    refreshCustomSound();
     if(soundsEl){soundsEl.querySelectorAll('.char').forEach(function(c){c.classList.toggle('sel',c.getAttribute('data-sound')==='custom');});}
     playPreview();
   });
 
   // ---- builder: try your own character (client-side bg removal, like the app) ----
-  var IDLE_PROMPT="Full-body pixel-art character, front view, standing and smiling. [DESCRIBE YOUR CHARACTER - e.g. a young man with short black hair, round glasses, a navy hoodie and grey joggers, brown sneakers]. They are holding a reusable water bottle in one hand, down at their side. Clean, detailed pixel-art style with soft shading; friendly and wholesome. Plain solid pale-blue background, a subtle soft shadow under the feet, the character centered with empty space all around. No text, no frame, no border.";
-  var ACTION_PROMPT="Using the previous image as the reference, keep the exact same character - same face, hairstyle, glasses, outfit, colours, art style and proportions. Now show them tilting their head back and drinking from the same water bottle, seen from the side. Same clean pixel-art style, same plain solid pale-blue background, same soft shadow under the feet. Full body, centered, with empty space around them. No text, no frame, no border.";
+  var IDLE_PROMPT="Full-body pixel-art character, front view, standing and smiling, arms relaxed at their sides, hands empty. [DESCRIBE YOUR CHARACTER — e.g. a young man with short black hair, round glasses, a navy hoodie and grey joggers, brown sneakers]. Clean, detailed pixel-art style with soft shading; friendly and wholesome. Plain solid pale-blue background, a subtle soft shadow under the feet, the character centered with empty space all around. No text, no frame, no border.";
+  var ACTION_PROMPT="Using the attached/previous image as the reference, keep the exact same character — [DESCRIBE YOUR CHARACTER AGAIN BRIEFLY]. Now show them holding up a small bell in one hand or paw, giving it a cheerful ring, with a bright, alert, friendly expression as if they've just remembered something for you. Same clean pixel-art style, same plain solid pale-blue background, same soft shadow under the feet. Full body, centered, with empty space around them. No text, no frame, no border.";
   var idlePromptBox=document.getElementById('idlePromptBox'),actionPromptBox=document.getElementById('actionPromptBox');
   if(idlePromptBox) idlePromptBox.textContent=IDLE_PROMPT;
   if(actionPromptBox) actionPromptBox.textContent=ACTION_PROMPT;
@@ -970,18 +992,29 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
   }
   var ctIdle=document.getElementById('ctIdle'),ctAction=document.getElementById('ctAction'),ctErr=document.getElementById('ctErr'),ownChar=document.getElementById('ownChar');
   function ctFail(m){if(ctErr){ctErr.textContent=m;ctErr.classList.remove('hidden');}}
+  function customReady(){return !!(CHARS.custom.idle&&CHARS.custom.action);}
+  // "Upload yours" stays disabled (dimmed + tooltip) until BOTH poses are uploaded.
+  function refreshOwnChar(){
+    if(!ownChar)return;
+    if(customReady()){ownChar.classList.remove('is-disabled');ownChar.removeAttribute('title');ownChar.removeAttribute('aria-disabled');}
+    else{ownChar.classList.add('is-disabled');ownChar.classList.remove('sel');ownChar.setAttribute('title','Upload both idle & action poses below first');ownChar.setAttribute('aria-disabled','true');}
+  }
+  refreshOwnChar();
   function onCtUpload(input,which){
     var file=input.files&&input.files[0];if(!file)return;ctErr&&ctErr.classList.add('hidden');
-    if(!file.type||file.type.indexOf('image/')!==0){return ctFail('Please choose an image (PNG, JPG or WebP).');}
-    if(file.size>5*1024*1024){return ctFail('Please use an image under 5 MB.');}
+    // On any failure clear the input so its filename disappears (no false "uploaded" hint).
+    function bad(m){input.value='';CHARS.custom[which]=null;refreshOwnChar();return ctFail(m);}
+    if(!file.type||file.type.indexOf('image/')!==0){return bad('Please choose an image (PNG, JPG or WebP).');}
+    if(file.size>5*1024*1024){return bad('Please use an image under 5 MB.');}
     processImg(file).then(function(url){
       CHARS.custom[which]=url;
-      if(CHARS.custom.idle){
+      refreshOwnChar();
+      if(customReady()){
         document.querySelectorAll('#chars .char').forEach(function(c){c.classList.remove('sel');});
         ownChar&&ownChar.classList.add('sel');
         setPet(previewScene,'custom');playPreview();
       }
-    }).catch(function(e){ctFail(e.message);});
+    }).catch(function(e){bad(e.message);});
   }
   ctIdle&&ctIdle.addEventListener('change',function(){onCtUpload(ctIdle,'idle');});
   ctAction&&ctAction.addEventListener('change',function(){onCtUpload(ctAction,'action');});
