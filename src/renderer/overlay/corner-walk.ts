@@ -9,7 +9,7 @@
 // callbacks that talk to the main process.
 import { characterById } from '../characters'
 import { playSound, playSoundUrl } from '../sounds'
-import { themeById, fontById } from '../appearance'
+import { themeById, fontById, inkForBg } from '../appearance'
 
 export type ReminderView = {
   id: string
@@ -24,6 +24,7 @@ export type ReminderView = {
   actionUrl?: string
   sound?: boolean
   bubbleTheme?: string
+  bubbleBg?: string // custom bubble colour hex (when bubbleTheme === 'custom')
   bubbleFont?: string
   soundChoice?: string // bundled sound id; custom is carried by soundUrl
   soundUrl?: string // custom sound clip (data URL); overrides the default chime
@@ -87,10 +88,13 @@ export class CornerWalk {
     this.refs.snoozeBtn.classList.toggle('hidden', !snoozable)
 
     // Bubble personalization (colour theme + message font) from the payload.
-    const theme = themeById(r.bubbleTheme)
     const font = fontById(r.bubbleFont)
-    this.refs.bubble.style.setProperty('--bubble-bg', theme.bg)
-    this.refs.bubble.style.setProperty('--bubble-ink', theme.ink)
+    // 'custom' carries an arbitrary hex in bubbleBg (Pro); otherwise use the registry.
+    const isCustom = r.bubbleTheme === 'custom' && !!r.bubbleBg
+    const bg = isCustom ? (r.bubbleBg as string) : themeById(r.bubbleTheme).bg
+    const ink = isCustom ? inkForBg(r.bubbleBg as string) : themeById(r.bubbleTheme).ink
+    this.refs.bubble.style.setProperty('--bubble-bg', bg)
+    this.refs.bubble.style.setProperty('--bubble-ink', ink)
     this.refs.bubble.style.setProperty('--bubble-font', font.family)
 
     if (r.sound !== false) this.playChime(r.soundChoice, r.soundUrl)

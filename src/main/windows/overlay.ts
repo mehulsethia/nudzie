@@ -46,6 +46,7 @@ export type Reminder = {
   sound?: boolean
   // Bubble personalization (gated in showReminder where needed; free is pinned).
   bubbleTheme?: string
+  bubbleBg?: string // custom bubble colour hex (Pro; used when bubbleTheme === 'custom')
   bubbleFont?: string
   soundChoice?: string // bundled sound id; custom is carried by soundUrl
   soundUrl?: string // custom sound data URL (Pro); overrides the default chime
@@ -198,6 +199,8 @@ export function showReminder(reminder: Reminder): void {
     // Bubble theme / font / sound - gated in the main process so a tampered
     // renderer can't unlock them.
     full.bubbleTheme = appearanceUnlocked || FREE_THEMES.has(prefs.bubbleTheme) ? prefs.bubbleTheme : 'cream'
+    // Custom colour is Pro; bubbleTheme is only 'custom' here when appearance is unlocked.
+    if (full.bubbleTheme === 'custom') full.bubbleBg = prefs.bubbleColor
     full.bubbleFont = appearanceUnlocked || FREE_FONTS.has(prefs.bubbleFont) ? prefs.bubbleFont : 'system'
     const soundId = appearanceUnlocked || FREE_SOUNDS.has(prefs.soundChoice) ? prefs.soundChoice : 'chime'
     full.soundChoice = soundId

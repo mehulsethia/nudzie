@@ -1,5 +1,5 @@
 import { CHARACTERS, characterById } from '../characters'
-import { BUBBLE_THEMES, BUBBLE_FONTS, SOUND_OPTIONS, fontById, themeById } from '../appearance'
+import { BUBBLE_THEMES, BUBBLE_FONTS, SOUND_OPTIONS, fontById, themeById, inkForBg, CUSTOM_BUBBLE_DEFAULT } from '../appearance'
 import { processCharacterImage, makeTrayFromIdle, makeAppIconFromIdle } from './bg-remove'
 import { playSound } from '../sounds'
 
@@ -33,7 +33,7 @@ const canUseAppearanceCustomizations = (): boolean =>
 // defaults until the license is activated. (The main process also pins Pro
 // values to free defaults — see src/main/windows/overlay.ts — so a preview can
 // never leak into an actual reminder.)
-const preview = { theme: null as string | null, font: null as string | null, char: null as string | null }
+const preview = { theme: null as string | null, font: null as string | null, char: null as string | null, color: null as string | null }
 // A non-Pro user can also upload their own character and see it in the preview
 // (the processed sprite lives in `processedIdle`); this flag just tracks that a
 // custom upload is being previewed so the "preview only" note shows.
@@ -42,11 +42,13 @@ const clearPreview = (): void => {
   preview.theme = null
   preview.font = null
   preview.char = null
+  preview.color = null
   previewingCustom = false
 }
 const anyPreview = (): boolean => !!(preview.theme || preview.font || preview.char || previewingCustom)
 const effTheme = (): string => preview.theme ?? prefs.bubbleTheme
 const effFont = (): string => preview.font ?? prefs.bubbleFont
+const effColor = (): string => preview.color ?? prefs.bubbleColor ?? CUSTOM_BUBBLE_DEFAULT
 
 // Lazily-created AudioContext so previewing a locked sound actually plays it.
 let audioCtx: AudioContext | null = null
@@ -112,10 +114,13 @@ function currentPreviewSprite(): string {
 
 function updateAppearancePreview(): void {
   if (!prefs) return
-  const theme = themeById(effTheme())
+  const themeId = effTheme()
+  const isCustom = themeId === 'custom'
+  const bg = isCustom ? effColor() : themeById(themeId).bg
+  const ink = isCustom ? inkForBg(effColor()) : themeById(themeId).ink
   const font = fontById(effFont())
-  appearanceBubble.style.setProperty('--preview-bubble-bg', theme.bg)
-  appearanceBubble.style.setProperty('--preview-bubble-ink', theme.ink)
+  appearanceBubble.style.setProperty('--preview-bubble-bg', bg)
+  appearanceBubble.style.setProperty('--preview-bubble-ink', ink)
   appearanceBubble.style.setProperty('--preview-bubble-font', font.family)
   appearancePreviewText.textContent = previewMessage()
   appearancePreviewSnooze.textContent = `+${Math.max(1, Math.min(59, prefs.snoozeMinutes || 15))}m`
@@ -701,6 +706,33 @@ function apprTile(o: {
   return tile
 }
 
+// Opens the OS colour picker for the custom bubble colour. Pro applies+saves;
+// non-Pro only previews it (never persisted — real reminders stay on the free
+// default, also enforced in the main process).
+function pickCustomColor(locked: boolean): void {
+  const input = document.createElement('input')
+  input.type = 'color'
+  input.value = (locked ? preview.color : prefs.bubbleColor) || CUSTOM_BUBBLE_DEFAULT
+  input.style.cssText = 'position:fixed;left:-9999px;opacity:0'
+  document.body.appendChild(input)
+  input.addEventListener('input', () => {
+    if (locked) {
+      preview.theme = 'custom'
+      preview.color = input.value
+      renderAppearance()
+    } else {
+      preview.theme = null
+      preview.color = null
+      prefs.bubbleTheme = 'custom'
+      prefs.bubbleColor = input.value
+      void q.setPrefs({ bubbleTheme: 'custom', bubbleColor: input.value })
+      renderAppearance()
+    }
+  })
+  input.addEventListener('change', () => input.remove())
+  input.click()
+}
+
 function renderAppearance(): void {
   const unlocked = canUseAppearanceCustomizations()
   apprProBadges.forEach((b) => b.classList.toggle('hidden', unlocked))
@@ -731,6 +763,32 @@ function renderAppearance(): void {
           void q.setPrefs({ bubbleTheme: t.id })
           renderAppearance()
         }
+      })
+    )
+  }
+
+  // Custom colour (Pro): pick any hex. Non-Pro can preview it; keeping it needs Pro.
+  {
+    const locked = !unlocked
+    const selected = prefs.bubbleTheme === 'custom' && !preview.theme
+    const previewing = preview.theme === 'custom'
+    themesEl.append(
+      apprTile({
+        name: 'Any colour',
+        selected,
+        previewing,
+        locked,
+        fill: (tile) => {
+          const sw = document.createElement('span')
+          sw.className = 'swatch'
+          // Show the chosen colour when active, else a rainbow to signal "any colour".
+          sw.style.background =
+            selected || previewing
+              ? effColor()
+              : 'conic-gradient(from 0deg,#f5c4e6,#b9e3ff,#bfe9cc,#fff1a8,#ffb27a,#f5c4e6)'
+          tile.append(sw)
+        },
+        onClick: () => pickCustomColor(locked)
       })
     )
   }

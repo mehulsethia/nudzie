@@ -15,6 +15,7 @@ declare global {
     actionUrl?: string
     sound?: boolean
     bubbleTheme?: string
+    bubbleBg?: string // custom bubble colour hex (when bubbleTheme === 'custom')
     bubbleFont?: string
     soundChoice?: string
     soundUrl?: string
@@ -68,6 +69,7 @@ declare global {
     character: string
     characterChosen: boolean
     bubbleTheme: string
+    bubbleColor: string
     bubbleFont: string
     soundChoice: string
     templatesSeeded: boolean

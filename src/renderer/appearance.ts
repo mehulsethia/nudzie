@@ -51,6 +51,21 @@ export const SOUND_OPTIONS: SoundOption[] = [
 
 export const APPEARANCE_DEFAULTS = { theme: 'cream', font: 'system', sound: 'chime' } as const
 
+// Pro "custom bubble colour": bubbleTheme === 'custom' uses the bubbleColor hex.
+export const CUSTOM_THEME_ID = 'custom'
+export const CUSTOM_BUBBLE_DEFAULT = '#6b5ff0'
+
+// Pick a readable ink (dark or light) for an arbitrary bubble background hex.
+export function inkForBg(hex: string): string {
+  const c = (hex || '').replace('#', '')
+  const full = c.length === 3 ? c[0] + c[0] + c[1] + c[1] + c[2] + c[2] : c
+  const r = parseInt(full.slice(0, 2), 16) || 0
+  const g = parseInt(full.slice(2, 4), 16) || 0
+  const b = parseInt(full.slice(4, 6), 16) || 0
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  return luminance > 0.62 ? '#1b1a2e' : '#ffffff'
+}
+
 export const themeById = (id: string | undefined): BubbleTheme =>
   BUBBLE_THEMES.find((t) => t.id === id) ?? BUBBLE_THEMES[0]
 

@@ -29,7 +29,8 @@ export type Prefs = {
   characterChosen: boolean // has the user picked one yet (drives first-run onboarding)
 
   // --- Bubble personalization (Pro; free is pinned to the defaults) ---
-  bubbleTheme: string // colour theme id (see src/renderer/appearance.ts)
+  bubbleTheme: string // colour theme id (see src/renderer/appearance.ts); 'custom' uses bubbleColor
+  bubbleColor: string // custom bubble colour hex, used when bubbleTheme === 'custom' (Pro)
   bubbleFont: string // message font id
   soundChoice: string // sound id ('chime' | 'custom' | …)
 
@@ -59,6 +60,7 @@ const DEFAULT_PREFS: Prefs = {
   characterChosen: false,
 
   bubbleTheme: 'cream',
+  bubbleColor: '#6b5ff0',
   bubbleFont: 'system',
   soundChoice: 'chime',
 
