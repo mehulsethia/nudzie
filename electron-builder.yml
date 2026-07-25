@@ -74,3 +74,6 @@ publish:
   provider: github
   owner: mehulsethia
   repo: nudzie-releases
+  # Publish a live (non-draft) release so GitHub's /releases/latest/download/
+  # links (the site's Download button) and the auto-updater resolve it.
+  releaseType: release
