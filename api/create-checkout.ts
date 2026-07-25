@@ -99,7 +99,7 @@ async function createCheckout(source: string): Promise<CheckoutResponse> {
     )
   }
 
-  const response = await fetch(`${dodoBaseUrl()}/checkout-sessions`, {
+  const response = await fetch(`${dodoBaseUrl()}/checkouts`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${selectedApiKey}`,
