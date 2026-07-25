@@ -274,6 +274,103 @@ function computePrevOccurrence(s: Schedule, now: Date): number | null {
   return null
 }
 
+/**
+ * The next scheduled occurrence strictly after `now` (epoch ms), or null if there
+ * is none (e.g. a past one-off, or a weekly with no days). Used to order the
+ * reminders list; for intervals it approximates the next nudge.
+ */
+export function computeNextOccurrence(s: Schedule, now: Date): number | null {
+  if (s.type === 'interval') {
+    const start = s.activeStartHour ?? 0
+    const end = s.activeEndHour ?? 24
+    const hour = now.getHours()
+    if (hour >= start && hour < end) {
+      // Inside the active window → the next nudge is at most everyMinutes away.
+      return now.getTime() + Math.max(1, s.everyMinutes ?? 60) * 60_000
+    }
+    // Outside the window → the next window start (today if still ahead, else tomorrow).
+    const startToday = at(now, now.getFullYear(), now.getMonth(), now.getDate(), start, 0)
+    if (startToday.getTime() > now.getTime()) return startToday.getTime()
+    const t = new Date(now)
+    t.setDate(t.getDate() + 1)
+    return at(t, t.getFullYear(), t.getMonth(), t.getDate(), start, 0).getTime()
+  }
+
+  const { h, m } = parseHM(s.time)
+
+  if (s.type === 'once') {
+    if (!s.date) return null
+    const [y, mo, d] = s.date.split('-').map((n) => parseInt(n, 10))
+    if (!y || !mo || !d) return null
+    const occ = at(now, y, mo - 1, d, h, m)
+    return occ.getTime() > now.getTime() ? occ.getTime() : null
+  }
+
+  if (s.type === 'daily') {
+    const today = at(now, now.getFullYear(), now.getMonth(), now.getDate(), h, m)
+    if (today.getTime() > now.getTime()) return today.getTime()
+    const t = new Date(now)
+    t.setDate(t.getDate() + 1)
+    return at(t, t.getFullYear(), t.getMonth(), t.getDate(), h, m).getTime()
+  }
+
+  if (s.type === 'weekly') {
+    const days = s.days ?? []
+    if (days.length === 0) return null
+    for (let off = 0; off <= 7; off++) {
+      const d = new Date(now)
+      d.setDate(d.getDate() + off)
+      const occ = at(d, d.getFullYear(), d.getMonth(), d.getDate(), h, m)
+      if (days.includes(occ.getDay()) && occ.getTime() > now.getTime()) return occ.getTime()
+    }
+    return null
+  }
+
+  if (s.type === 'monthly') {
+    const dom = s.dayOfMonth ?? 1
+    for (let off = 0; off <= 1; off++) {
+      const y = now.getMonth() + off > 11 ? now.getFullYear() + 1 : now.getFullYear()
+      const mo = (now.getMonth() + off) % 12
+      const occ = at(now, y, mo, Math.min(dom, daysInMonth(y, mo)), h, m)
+      if (occ.getTime() > now.getTime()) return occ.getTime()
+    }
+    return null
+  }
+
+  if (s.type === 'yearly') {
+    const mo = (s.month ?? 1) - 1
+    const day = s.day ?? 1
+    for (let off = 0; off <= 1; off++) {
+      const y = now.getFullYear() + off
+      const occ = at(now, y, mo, Math.min(day, daysInMonth(y, mo)), h, m)
+      if (occ.getTime() > now.getTime()) return occ.getTime()
+    }
+    return null
+  }
+
+  return null
+}
+
+/**
+ * Orders the reminders list for display: enabled (active) reminders first, then
+ * by soonest next occurrence; those with no upcoming fire sink to the bottom of
+ * their group. Pure — returns a new array; storage order is untouched.
+ */
+export function sortReminders(list: ScheduledReminder[]): ScheduledReminder[] {
+  const now = new Date()
+  const nextById = new Map<string, number>()
+  for (const r of list) {
+    nextById.set(r.id, computeNextOccurrence(r.schedule, now) ?? Number.POSITIVE_INFINITY)
+  }
+  return [...list].sort((a, b) => {
+    if (a.enabled !== b.enabled) return a.enabled ? -1 : 1 // active first
+    const na = nextById.get(a.id) ?? Number.POSITIVE_INFINITY
+    const nb = nextById.get(b.id) ?? Number.POSITIVE_INFINITY
+    if (na !== nb) return na - nb // soonest next fire first
+    return a.title.localeCompare(b.title) // stable tiebreaker
+  })
+}
+
 function evaluateScheduled(now: Date): void {
   const list = getScheduled()
   if (list.length === 0) return

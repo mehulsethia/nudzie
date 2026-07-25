@@ -1,10 +1,10 @@
-import { app, globalShortcut } from 'electron'
+import { app } from 'electron'
 import { createOverlayWindow } from './windows/overlay'
 import { openSettings } from './windows/settings'
 import { createTray } from './tray'
 import { registerIpc } from './ipc'
 import { getPrefs, seedDefaultReminders } from './store'
-import { startScheduler, triggerTestReminder, remindNow } from './scheduler'
+import { startScheduler, triggerTestReminder } from './scheduler'
 import { applyDockMode, applyAppIcon } from './platform'
 import { initAutoUpdate } from './updater'
 import * as calendar from './calendar'
@@ -50,10 +50,8 @@ app.whenReady().then(async () => {
   createOverlayWindow()
   createTray({
     onSettings: openSettings,
-    onTestReminder: triggerTestReminder,
-    onRemindNow: remindNow
+    onTestReminder: triggerTestReminder
   })
-  globalShortcut.register('CommandOrControl+Shift+D', triggerTestReminder)
 
   // Show the control window when the app opens.
   openSettings()
@@ -98,8 +96,4 @@ app.on('window-all-closed', () => {
 // intercepting close → hide and actually lets the app exit).
 app.on('before-quit', () => {
   ;(app as unknown as { isQuiting?: boolean }).isQuiting = true
-})
-
-app.on('will-quit', () => {
-  globalShortcut.unregisterAll()
 })

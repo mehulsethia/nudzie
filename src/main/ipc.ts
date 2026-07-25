@@ -26,7 +26,8 @@ import {
   triggerTestReminder,
   remindNow,
   handleAccept,
-  handleSnooze
+  handleSnooze,
+  sortReminders
 } from './scheduler'
 
 const FREE_CAL_MSG =
@@ -149,7 +150,7 @@ export function registerIpc(): void {
   })
 
   // --- Scheduled reminders (once/daily/weekly/monthly/yearly) ---
-  ipcMain.handle('scheduled:list', () => getScheduled())
+  ipcMain.handle('scheduled:list', () => sortReminders(getScheduled()))
   ipcMain.handle('scheduled:add', (_e, r: Omit<ScheduledReminder, 'id' | 'enabled' | 'lastFired'>) => {
     const list = getScheduled()
     const entry: ScheduledReminder = {
@@ -161,17 +162,17 @@ export function registerIpc(): void {
       enabled: true
     }
     setScheduled([...list, entry])
-    return getScheduled()
+    return sortReminders(getScheduled())
   })
   ipcMain.handle('scheduled:remove', (_e, id: string) => {
     setScheduled(getScheduled().filter((r) => r.id !== id))
-    return getScheduled()
+    return sortReminders(getScheduled())
   })
   ipcMain.handle('scheduled:setEnabled', (_e, id: string, enabled: boolean) => {
     setScheduled(
       getScheduled().map((r) => (r.id === id ? { ...r, enabled, lastFired: undefined } : r))
     )
-    return getScheduled()
+    return sortReminders(getScheduled())
   })
 
   // --- Custom character ("make your own") ---

@@ -9,7 +9,6 @@ let currentHandlers: TrayHandlers | null = null
 export type TrayHandlers = {
   onSettings: () => void
   onTestReminder: () => void
-  onRemindNow: () => void
 }
 
 /**
@@ -38,7 +37,7 @@ function computeTrayImage(): NativeImage {
 /**
  * Creates the menu-bar / system-tray icon and its menu. Base = QuakPit's tray
  * (settings + a test reminder); folded in = Hydrate Buddy's manual controls
- * (remind me now, pause reminders, quit). The icon is the character's face.
+ * (pause reminders, quit). The icon is the character's face.
  */
 export function createTray(handlers: TrayHandlers): Tray {
   currentHandlers = handlers
@@ -60,8 +59,7 @@ function rebuild(): void {
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: 'Open Nudzie', click: h.onSettings },
-      { label: 'Remind me now  💧', click: h.onRemindNow },
-      { label: 'Trigger a test reminder  (⌘⇧D)', click: h.onTestReminder },
+      { label: 'Trigger a test reminder', click: h.onTestReminder },
       { type: 'separator' },
       {
         label: 'Pause reminders',
