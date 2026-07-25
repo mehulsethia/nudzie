@@ -616,22 +616,34 @@ input::placeholder { color: #a7a3bd; }
 input[type='file'] { font-family: var(--body); font-size: 12px; }
 
 /* ------------------------------------------------------------- pro upsell */
-#license-locked, #license-active { padding: 20px; }
-.pro-price-row {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  margin-bottom: 16px;
+.pro-card {
+  background: var(--paper);
+  border: 3px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--hard);
+  padding: 22px 22px 24px;
+  margin: 16px 0 20px;
 }
-.pro-price-row strong {
-  font-family: var(--pix);
-  font-size: 32px;
-  line-height: 1;
+.pro-price { display: flex; align-items: baseline; gap: 10px; }
+.pro-price strong { font-family: var(--pix); font-size: 40px; line-height: 1; color: var(--ink); }
+.pro-price span { color: var(--muted); font-size: 13px; }
+.pro-tagline { margin: 12px 0 18px; font-size: 14px; color: var(--ink); }
+.pro-feats { list-style: none; margin: 0 0 22px; padding: 0; display: grid; gap: 12px; }
+.pro-feats li { position: relative; padding-left: 32px; font-size: 14px; line-height: 1.45; color: var(--ink); }
+.pro-feats li::before {
+  content: '✓';
+  position: absolute; left: 0; top: 0;
+  width: 21px; height: 21px; border-radius: 50%;
+  background: var(--green); color: #fff;
+  font-size: 12px; font-weight: 800; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid var(--border); box-sizing: border-box;
 }
-.pro-price-row span {
-  color: var(--muted);
-  font-size: 14px;
-}
+.pro-cta { font-size: 15px; padding: 13px; }
+.pro-activate-label { font-family: var(--pix); font-size: 14px; margin: 0 0 2px; color: var(--ink); }
+.pro-activate .row { margin-top: 8px; }
+.pro-activate input[type='text'] { flex: 1; min-width: 200px; margin: 0; }
+.pro-active-title { font-family: var(--pix); font-size: 16px; margin: 0 0 6px; color: var(--ink); }
 
 ::-webkit-scrollbar { width: 12px; height: 12px; }
 ::-webkit-scrollbar-thumb { background: #c9c4e6; border: 3px solid var(--ground); border-radius: 8px; }

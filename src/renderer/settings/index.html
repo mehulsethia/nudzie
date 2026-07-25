@@ -352,21 +352,35 @@
           <p class="muted" id="license-line"></p>
 
           <div id="license-locked">
-            <div class="pro-price-row">
-              <strong>$9.99</strong>
-              <span>one-time - yours forever</span>
+            <div class="pro-card">
+              <div class="pro-price"><strong>$9.99</strong><span>one-time · yours forever</span></div>
+              <p class="pro-tagline">Make Nudzie truly yours — and keep a tiny indie project flying.</p>
+              <ul class="pro-feats">
+                <li>Bring your own pixel character for real nudges</li>
+                <li>Combine multiple calendars at once</li>
+                <li>Every bubble colour — 8 presets plus any custom colour you pick</li>
+                <li>All message fonts: Mono, Rounded, Serif &amp; Condensed</li>
+                <li>Every reminder sound, plus your own upload</li>
+              </ul>
+              <button id="buy-btn" class="btn btn-primary btn-block pro-cta">Unlock Nudzie Pro — $9.99</button>
             </div>
-            <label class="field"><span>License key</span><input id="license-key" type="text" placeholder="Paste your key" /></label>
-            <div class="row">
-              <button id="activate-btn" class="btn btn-primary">Activate</button>
-              <button id="buy-btn" class="btn btn-outline">Get Nudzie Pro</button>
+
+            <div class="pro-activate">
+              <p class="pro-activate-label">Already have a license key?</p>
+              <div class="row">
+                <input id="license-key" type="text" placeholder="Paste your key" />
+                <button id="activate-btn" class="btn btn-outline">Activate</button>
+              </div>
+              <p class="muted small">One license activates one device. Deactivate before moving Nudzie Pro to another computer.</p>
             </div>
-            <p class="muted small">One license activates one device. Deactivate before moving Nudzie Pro to another computer.</p>
           </div>
 
           <div id="license-active" class="hidden">
-            <p class="muted small">Nudzie Pro is active on this device. Deactivate before moving this license to another computer.</p>
-            <button id="deactivate-btn" class="btn btn-outline">Deactivate on this device</button>
+            <div class="pro-card pro-active-card">
+              <p class="pro-active-title">✅ Nudzie Pro is active on this device</p>
+              <p class="muted small">Everything's unlocked. Deactivate before moving this license to another computer.</p>
+              <button id="deactivate-btn" class="btn btn-outline">Deactivate on this device</button>
+            </div>
           </div>
           <p id="license-error" class="error hidden"></p>
         </section>

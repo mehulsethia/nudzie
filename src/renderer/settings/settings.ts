@@ -1168,8 +1168,8 @@ function renderLicense(s: LicenseStatus): void {
   licenseActive.classList.toggle('hidden', !s.premium)
   calFreeNote.classList.toggle('hidden', s.premium) // "one calendar source only" note
   licenseLine.textContent = s.premium
-    ? `Nudzie Pro is active on this device. Key ${s.keyMasked ?? ''}`
-    : 'Unlock custom characters, themes, any colour, fonts, sounds and unlimited calendars for $9.99 once.'
+    ? `Active on this device · Key ${s.keyMasked ?? ''}`
+    : 'Everything unlocked. One payment, yours forever.'
   applyCustomSaveMode(s.premium) // "Use this character" vs "Activate Pro to use this →"
   renderCharacters()
   renderAppearance()
