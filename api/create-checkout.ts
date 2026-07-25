@@ -69,12 +69,20 @@ function sendHtmlError(res: VercelResponseLike, status: number, message: string)
 }
 
 async function readError(response: Response): Promise<string> {
+  const raw = await response.text().catch(() => '')
+  // Surface Dodo's actual reason in the Vercel function logs (never the API key).
+  console.error('dodo.checkout.error', {
+    status: response.status,
+    mode: mode(),
+    productId: productId(),
+    body: raw.slice(0, 800)
+  })
   try {
-    const data = (await response.json()) as Record<string, unknown>
+    const data = JSON.parse(raw) as Record<string, unknown>
     const detail = data.message || data.error || data.detail
     if (typeof detail === 'string' && detail.trim()) return detail
   } catch {
-    /* ignore */
+    /* body wasn't JSON */
   }
   return `Dodo checkout failed with HTTP ${response.status}.`
 }

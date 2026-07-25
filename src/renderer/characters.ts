@@ -26,9 +26,9 @@ export type Character = {
 export const DEFAULT_CHARACTER = 'androgynous'
 
 export const CHARACTERS: Character[] = [
+  { id: 'androgynous', name: 'Androgynous', free: true, idle: androgynousIdle, action: androgynousAction },
   { id: 'male', name: 'Male', free: true, idle: maleIdle, action: maleAction },
-  { id: 'female', name: 'Female', free: true, idle: femaleIdle, action: femaleAction },
-  { id: 'androgynous', name: 'Androgynous', free: true, idle: androgynousIdle, action: androgynousAction }
+  { id: 'female', name: 'Female', free: true, idle: femaleIdle, action: femaleAction }
   // --- Pro novelty characters get added here (with free: false) ---
 ]
 
