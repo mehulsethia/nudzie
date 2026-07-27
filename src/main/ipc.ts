@@ -43,6 +43,9 @@ function calendarCount(): number {
 
 /** Wires the settings + overlay renderers to the main process. */
 export function registerIpc(): void {
+  // Shown in the sidebar footer so a bug report can name the exact build.
+  ipcMain.handle('app:version', () => app.getVersion())
+
   ipcMain.handle('prefs:get', () => getPrefs())
 
   ipcMain.handle('prefs:set', (_e, patch: Partial<Prefs>) => {

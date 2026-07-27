@@ -117,6 +117,7 @@ declare global {
     icalRemove: (id: string) => Promise<Feed[]>
     upcoming: () => Promise<UpcomingEvent[]>
     openExternal: (url: string) => Promise<void>
+    appVersion: () => Promise<string>
     testReminder: () => Promise<boolean>
     remindNow: () => Promise<boolean>
     // Scheduled reminders

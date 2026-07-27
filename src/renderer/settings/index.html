@@ -20,6 +20,11 @@
         <button class="nav-item" data-tab="pro"><span class="nav-ic">⭐</span>Nudzie Pro</button>
         <div class="nav-foot">
           <button id="side-test-btn" class="btn btn-outline btn-block">Trigger a test reminder</button>
+          <!-- A button, not an anchor: the CSP is default-src 'self', and the
+               settings window must never navigate away. Opens in the browser
+               via shell.openExternal (see settings.ts). -->
+          <p class="studio-credit">Presented by <button type="button" id="studio-link" class="link-btn">Senseibles</button></p>
+          <p class="studio-version" id="app-version"></p>
         </div>
       </nav>
 
@@ -379,7 +384,7 @@
                 <input id="license-key" type="text" placeholder="Paste your key" />
                 <button id="activate-btn" class="btn btn-outline">Activate</button>
               </div>
-              <p class="muted small">One license activates one device. Deactivate before moving Nudzie Pro to another computer.</p>
+              <p class="muted small">Pay once by card via Dodo — no subscription. Activates on one device. Thanks for supporting Nudzie.</p>
             </div>
           </div>
 

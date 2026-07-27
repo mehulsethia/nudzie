@@ -44,6 +44,7 @@ contextBridge.exposeInMainWorld('nudzie', {
   icalRemove: (id: string) => ipcRenderer.invoke('ical:remove', id),
   upcoming: () => ipcRenderer.invoke('events:upcoming'),
   openExternal: (url: string) => ipcRenderer.invoke('open:external', url),
+  appVersion: () => ipcRenderer.invoke('app:version'),
   testReminder: () => ipcRenderer.invoke('reminder:test'),
   remindNow: () => ipcRenderer.invoke('reminder:now'),
 

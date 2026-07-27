@@ -16,6 +16,9 @@ const ACTION_PROMPT =
 // are missing, it shows a friendly website fallback instead of failing silently.
 const CHECKOUT_URL = 'https://nudzie.app/api/create-checkout?source=app&redirect=1'
 
+// The studio behind Nudzie, credited in the sidebar footer.
+const STUDIO_URL = 'https://senseibles.com/'
+
 // ---------------------------------------------------------------------------
 // Proportional scaling.
 //
@@ -201,6 +204,10 @@ Array.from(document.querySelectorAll<HTMLButtonElement>('.tag-btn')).forEach((b)
 
 $<HTMLButtonElement>('test-btn').addEventListener('click', () => void q.testReminder())
 $<HTMLButtonElement>('side-test-btn').addEventListener('click', () => void q.testReminder())
+$<HTMLButtonElement>('studio-link').addEventListener('click', () => void q.openExternal(STUDIO_URL))
+void q.appVersion().then((v) => {
+  $('app-version').textContent = `Version ${v}`
+})
 
 // ---- Snooze length (global, applies to every reminder) ----
 const snoozeMinutes = $<HTMLInputElement>('snoozeMinutes')

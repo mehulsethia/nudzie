@@ -144,6 +144,34 @@ body {
   padding-top: 16px;
 }
 
+/* "Presented by Senseibles" under the sidebar's test button. */
+.studio-credit {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+.link-btn {
+  font: inherit;
+  font-family: var(--pix);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--grape-deep);
+  cursor: pointer;
+  text-decoration: none;
+}
+.link-btn:hover { text-decoration: underline; }
+
+/* Build number under the credit - small, so a bug report can name the version. */
+.studio-version {
+  margin: 4px 0 0;
+  text-align: center;
+  font-size: 10px;
+  color: var(--muted);
+  opacity: 0.75;
+}
+
 /* ------------------------------------------------------------------ content */
 #content {
   overflow-y: auto;
