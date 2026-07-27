@@ -2,6 +2,7 @@ import { app, BrowserWindow, screen } from 'electron'
 import { join } from 'node:path'
 import { getPrefs, loadCustomCharacter, loadCustomSound } from '../store'
 import { isPremium, canUseAppearanceCustomizations, canUseCustomCharacter } from '../license'
+import { applyAppIcon } from '../platform'
 
 /**
  * Showing an always-on-top window can make macOS drop the app to "accessory"
@@ -13,6 +14,8 @@ function keepDockVisible(): void {
   if (process.platform !== 'darwin' || !app.dock) return
   if (!getPrefs().dockIcon) return
   void app.dock.show()
+  // dock.show() reverts the icon to the bundle's own, so re-assert the character.
+  applyAppIcon()
 }
 
 // Free-tier identities and the default. Kept in sync with the renderer registry
@@ -32,6 +35,10 @@ export type Reminder = {
   // Which trigger produced it (routes accept/snooze). 'summary' is the coalesced
   // "while you were away" catch-up nudge - acknowledge-only, no snooze.
   kind: 'calendar' | 'interval' | 'scheduled' | 'summary'
+  // The reminder's name. Shown as the bubble's headline, with `message` beneath
+  // it in smaller type. Calendar reminders have no separate title (their text is
+  // built from the message template), so `message` becomes the headline instead.
+  title?: string
   message: string
   // For 'summary': the list of missed reminders shown inside the bubble.
   items?: string[]

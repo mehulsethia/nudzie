@@ -16,6 +16,45 @@ const ACTION_PROMPT =
 // are missing, it shows a friendly website fallback instead of failing silently.
 const CHECKOUT_URL = 'https://nudzie.app/api/create-checkout?source=app&redirect=1'
 
+// ---------------------------------------------------------------------------
+// Proportional scaling.
+//
+// The window is maximizable, but the layout is capped (.panel is 680px), so a
+// maximized window would otherwise just grow a field of empty background. This
+// zooms the whole UI uniformly instead, keeping every proportion - type size,
+// padding, the chunky borders and pixel art - exactly as designed, just bigger.
+//
+// Uniform (not per-axis) so nothing distorts: the factor is the smaller of the
+// two ratios against the window's design size. Only ever scales up; below the
+// design size the UI stays at 1 and scrolls, as before.
+//
+// To revert to a fixed-size UI, delete this block and its resize listener.
+// ---------------------------------------------------------------------------
+const DESIGN_W = 780 // must match the BrowserWindow size in main/windows/settings.ts
+const DESIGN_H = 580
+const MAX_ZOOM = 1.8 // past this the UI reads as comically oversized
+
+function applyScale(): void {
+  const factor = Math.min(
+    MAX_ZOOM,
+    Math.max(1, Math.min(window.innerWidth / DESIGN_W, window.innerHeight / DESIGN_H))
+  )
+  const root = document.documentElement
+  // `zoom` (rather than a transform) so the layout re-flows at the scaled size:
+  // it stays crisp and keeps scrolling/hit-testing correct.
+  root.style.zoom = String(factor)
+  // Viewport units do NOT account for the root zoom, so a `100vh` shell would be
+  // `factor` viewports tall - the whole page scrolls and the fixed sidebar gets
+  // dragged out of view. window.innerWidth/Height are unzoomed device-viewport
+  // CSS pixels, so dividing by the factor gives the shell's size in the zoomed
+  // coordinate space. #app consumes these (see settings.css).
+  root.style.setProperty('--app-w', `${window.innerWidth / factor}px`)
+  root.style.setProperty('--app-h', `${window.innerHeight / factor}px`)
+}
+
+window.addEventListener('resize', applyScale)
+applyScale()
+
 let prefs = {} as Prefs
 let isPro = false
 let hasCustom = false

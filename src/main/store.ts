@@ -51,8 +51,11 @@ const DEFAULT_PREFS: Prefs = {
   intervalMessage: 'Time for a water break 💧',
 
   soundEnabled: true,
+  // The three "App" checkboxes all default on: a reminder app is only useful if
+  // it starts with the machine, and staying reachable (Dock) plus staying signed
+  // in to calendars is what a new user expects.
   staySignedIn: true,
-  launchAtLogin: false,
+  launchAtLogin: true,
   dockIcon: true,
   targetDisplay: 'cursor',
 

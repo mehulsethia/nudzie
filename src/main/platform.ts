@@ -1,6 +1,16 @@
 import { app, BrowserWindow, nativeImage } from 'electron'
-import { join } from 'node:path'
 import { getPrefs, loadCustomAppIcon } from './store'
+import { buildAssetImage } from './assets'
+
+// Whether a menu-bar / tray icon exists - the app's other way back in. Set by
+// index.ts once the tray has been created. Kept as a flag rather than importing
+// tray.ts because tray → scheduler → windows/overlay → platform would be an
+// import cycle (overlay re-applies the Dock icon, see keepDockVisible there).
+let trayAvailable = false
+
+export function setTrayAvailable(available: boolean): void {
+  trayAvailable = available
+}
 
 /**
  * Applies the "show in Dock" preference on macOS.
@@ -8,10 +18,15 @@ import { getPrefs, loadCustomAppIcon } from './store'
  *  - dockIcon = false → menu-bar-only ("accessory"): no Dock icon, no Cmd-Tab
  *    entry; the app lives entirely in the menu-bar / tray (like Hydrate Buddy).
  * No-op on Windows/Linux, which have no Dock concept.
+ *
+ * Hiding the Dock icon is only safe while a menu-bar icon exists. If the tray
+ * failed to create, honouring dockIcon = false would strand the app: still
+ * running, but with no Dock icon and no menu-bar icon to click. In that case we
+ * keep the Dock icon regardless of the preference.
  */
 export function applyDockMode(): void {
   if (process.platform !== 'darwin') return
-  const show = getPrefs().dockIcon
+  const show = getPrefs().dockIcon || !trayAvailable
   try {
     app.setActivationPolicy(show ? 'regular' : 'accessory')
     if (show) void app.dock?.show()
@@ -19,6 +34,9 @@ export function applyDockMode(): void {
   } catch {
     /* not permitted in some environments */
   }
+  // dock.show() resets the Dock icon to the app bundle's own icon - which in dev
+  // is the stock Electron logo. Re-assert the character icon after every show.
+  if (show) applyAppIcon()
 }
 
 /**
@@ -31,9 +49,7 @@ export function applyDockMode(): void {
  */
 export function applyAppIcon(): void {
   const custom = loadCustomAppIcon()
-  const img = custom
-    ? nativeImage.createFromDataURL(custom)
-    : nativeImage.createFromPath(join(app.getAppPath(), 'build', 'icon.png'))
+  const img = custom ? nativeImage.createFromDataURL(custom) : buildAssetImage('icon.png')
   if (!img || img.isEmpty()) return
   try {
     if (process.platform === 'darwin') {

@@ -5,6 +5,7 @@ declare global {
   type Reminder = {
     id: string
     kind: 'calendar' | 'interval' | 'scheduled' | 'summary'
+    title?: string
     message: string
     items?: string[]
     acceptLabel: string

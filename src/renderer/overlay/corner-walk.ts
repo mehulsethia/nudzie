@@ -14,6 +14,7 @@ import { themeById, fontById, inkForBg } from '../appearance'
 export type ReminderView = {
   id: string
   kind: 'calendar' | 'interval' | 'scheduled' | 'summary'
+  title?: string // headline; `message` renders beneath it in smaller type
   message: string
   items?: string[] // for 'summary': the missed reminders listed in the bubble
   acceptLabel: string
@@ -101,7 +102,7 @@ export class CornerWalk {
 
     await this.walkIn()
     if (r.kind === 'summary') this.showSummary(r.message, r.items ?? [])
-    else this.showBubble(r.message, true)
+    else this.showBubble(r.title, r.message, true)
     this.busy = false
   }
 
@@ -145,11 +146,38 @@ export class CornerWalk {
   }
 
   // ---- bubble ----
-  private showBubble(text: string, withButtons: boolean): void {
-    this.refs.bubbleText.classList.remove('summary')
-    this.refs.bubbleText.textContent = text
+  // The reminder's title is the headline; its optional message renders beneath
+  // in smaller type. Either one alone becomes the headline, so a reminder with
+  // no message (or a calendar nudge, which has no title) still reads as one
+  // line. Built as DOM nodes - never innerHTML - so reminder text can't inject
+  // markup.
+  private showBubble(title: string | undefined, message: string, withButtons: boolean): void {
+    const head = title?.trim() || message.trim()
+    const sub = title?.trim() && message.trim() !== head ? message.trim() : ''
+
+    const el = this.refs.bubbleText
+    el.classList.remove('summary')
+    el.textContent = ''
+
+    const headline = document.createElement('div')
+    headline.className = 'bubble-head'
+    headline.textContent = head
+    el.appendChild(headline)
+
+    if (sub) {
+      const detail = document.createElement('div')
+      detail.className = 'bubble-sub'
+      detail.textContent = sub
+      el.appendChild(detail)
+    }
+
     this.refs.buttons.classList.toggle('hidden', !withButtons)
     this.refs.bubble.classList.remove('hidden')
+  }
+
+  /** One-line bubble copy (the celebrate / snooze / goodbye beats). */
+  private showLine(text: string, withButtons: boolean): void {
+    this.showBubble(undefined, text, withButtons)
   }
 
   // The "while you were away" catch-up: a header plus a bullet list of the missed
@@ -203,7 +231,7 @@ export class CornerWalk {
     const glyphs = isCalendar
       ? ['👍', '✨', '🎉', '⭐', '📌']
       : ['✨', '🎉', '⭐', '💫', '💙']
-    this.showBubble(cheer, false)
+    this.showLine(cheer, false)
     this.showAction(true) // action pose
     await wait(950)
     this.showAction(false)
@@ -220,7 +248,7 @@ export class CornerWalk {
     const r = this.current
     this.cb.onAccept(r)
     await this.celebrate()
-    this.showBubble('See you later! 👋', false)
+    this.showLine('See you later! 👋', false)
     await wait(600)
     await this.walkOut()
     // Free ourselves before signalling done, so the next queued reminder (which
@@ -234,7 +262,7 @@ export class CornerWalk {
     this.busy = true
     const r = this.current
     this.cb.onSnooze(r)
-    this.showBubble(`Okay - back in ${r.snoozeMinutes} min!`, false)
+    this.showLine(`Okay - back in ${r.snoozeMinutes} min!`, false)
     await wait(1300)
     await this.walkOut()
     this.busy = false

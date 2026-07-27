@@ -26,6 +26,21 @@ files:
   # distributed app). Absent at build time => simply not bundled.
   - oauth-credentials.json
 
+# build/ is `directories.buildResources`, so electron-builder deliberately keeps
+# it OUT of app.asar. The runtime still needs the tray + app icons from it, so
+# copy just those into Contents/Resources/build — src/main/assets.ts resolves
+# them from process.resourcesPath. Without this the tray image is empty, which
+# renders as an INVISIBLE menu-bar icon.
+extraResources:
+  - from: build
+    to: build
+    filter:
+      - tray.png
+      - tray@2x.png
+      - iconTemplate.png
+      - iconTemplate@2x.png
+      - icon.png
+
 mac:
   category: public.app-category.productivity
   icon: build/icon.png

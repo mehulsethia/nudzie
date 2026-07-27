@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 export type Reminder = {
   id: string
   kind: 'calendar' | 'interval' | 'scheduled' | 'summary'
+  title?: string // headline; `message` renders beneath it in smaller type
   message: string
   items?: string[] // for 'summary': the list of missed reminders
   acceptLabel: string

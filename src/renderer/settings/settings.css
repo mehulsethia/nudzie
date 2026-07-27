@@ -44,6 +44,9 @@
 html, body {
   height: 100%;
   margin: 0;
+  /* #app owns all scrolling (the sidebar and content pane scroll separately).
+     Belt-and-braces against a page-level scrollbar appearing under zoom. */
+  overflow: hidden;
 }
 
 body {
@@ -61,7 +64,12 @@ body {
 #app {
   display: grid;
   grid-template-columns: 244px 1fr;
-  height: 100vh;
+  /* Sized by applyScale() in settings.ts rather than in viewport units: vw/vh
+     ignore the root `zoom`, which would make the shell taller than the window
+     and scroll the sidebar away instead of pinning it. The fallbacks apply
+     before the first applyScale() call. */
+  width: var(--app-w, 100vw);
+  height: var(--app-h, 100vh);
   overflow: hidden;
 }
 
@@ -241,6 +249,21 @@ input:focus, select:focus { outline: none; box-shadow: 3px 3px 0 var(--grape); }
 input::placeholder { color: #a7a3bd; }
 
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
+
+/* A lone field that shouldn't stretch the full width of the form (a number or
+   time input reads better at the same width it would have as half of a pair). */
+.field-half { max-width: calc(50% - 7px); }
+
+/* "When it happens" row of the reminder form: the date field(s) for the chosen
+   repeat sit on the same line as Time. Flex (not grid) so the hidden fields for
+   the other repeat types collapse out and the visible ones share the line. */
+.when-row { display: flex; flex-wrap: wrap; gap: 0 14px; align-items: flex-end; }
+.when-row > * { flex: 1 1 150px; }
+/* Time never spans a whole row on its own (daily / weekly show only Time). */
+.when-row > #sch-time-wrap { max-width: calc(50% - 7px); }
+/* Yearly's Month + Day count as one date field, so they share Time's line. */
+.when-pair { display: flex; gap: 0 14px; flex: 1 1 300px; }
+.when-pair > .field { flex: 1 1 0; }
 
 .check {
   display: flex;

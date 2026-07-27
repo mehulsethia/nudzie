@@ -5,7 +5,7 @@ import { createTray } from './tray'
 import { registerIpc } from './ipc'
 import { getPrefs, seedDefaultReminders } from './store'
 import { startScheduler, triggerTestReminder } from './scheduler'
-import { applyDockMode, applyAppIcon } from './platform'
+import { applyDockMode, applyAppIcon, setTrayAvailable } from './platform'
 import { initAutoUpdate } from './updater'
 import * as calendar from './calendar'
 import * as license from './license'
@@ -31,6 +31,14 @@ app.on('child-process-gone', (_e, d) => console.error('[child-process-gone]', d)
 app.on('second-instance', () => openSettings())
 
 app.whenReady().then(async () => {
+  // The menu-bar / tray icon is created FIRST: it is the app's guaranteed way
+  // back in, and applyDockMode() refuses to hide the Dock icon without it.
+  const tray = createTray({
+    onSettings: openSettings,
+    onTestReminder: triggerTestReminder
+  })
+  setTrayAvailable(!!tray)
+
   // Nudzie keeps a menu-bar / tray icon and stays running in the background.
   // Whether it also shows a Dock icon (regular app) or hides in the menu bar
   // only (accessory) follows the "Show in Dock" preference - see platform.ts.
@@ -48,10 +56,6 @@ app.whenReady().then(async () => {
   }
 
   createOverlayWindow()
-  createTray({
-    onSettings: openSettings,
-    onTestReminder: triggerTestReminder
-  })
 
   // Show the control window when the app opens.
   openSettings()

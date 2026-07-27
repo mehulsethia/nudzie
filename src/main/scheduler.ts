@@ -410,6 +410,10 @@ function evaluateScheduled(now: Date): void {
 function fireScheduled(r: ScheduledReminder, occ: number): void {
   const prefs = getPrefs()
   const message = r.message?.trim() || r.title
+  // The bubble leads with the title and puts the message underneath. When the
+  // (optional) message is blank the title alone becomes the headline, so don't
+  // send a title that would just repeat it.
+  const title = r.message?.trim() ? r.title : undefined
 
   // A one-off firing well after its time = missed while we were away. Coalesce it
   // into the "while you were away" summary instead of a solo late walk-in.
@@ -423,6 +427,7 @@ function fireScheduled(r: ScheduledReminder, occ: number): void {
   const reminder: Reminder = {
     id: `sched:${r.id}:${occ}`,
     kind: 'scheduled',
+    title,
     message,
     acceptLabel: 'Got it',
     snoozeLabel: `+${clampSnooze(prefs.snoozeMinutes)}m`,
@@ -483,6 +488,7 @@ function fireIntervalReminder(r: ScheduledReminder): void {
   const reminder: Reminder = {
     id: `interval:${r.id}:${Date.now()}`,
     kind: 'interval',
+    title: r.message?.trim() ? r.title : undefined,
     message: r.message?.trim() || r.title,
     acceptLabel: 'Done ✅',
     snoozeLabel: `+${clampSnooze(prefs.snoozeMinutes)}m`,
@@ -561,7 +567,9 @@ export function triggerTestReminder(): void {
   const reminder: Reminder = {
     id: `test:${Date.now()}`,
     kind: 'interval',
-    message: 'Call with Jack in 5 minutes',
+    // Title + message, so the test also previews the two-line bubble.
+    title: 'Call with Jack',
+    message: 'Starting in 5 minutes',
     acceptLabel: 'Got it',
     snoozeLabel: `+${clampSnooze(prefs.snoozeMinutes)}m`,
     snoozeMinutes: clampSnooze(prefs.snoozeMinutes),

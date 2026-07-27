@@ -24,8 +24,8 @@ export function openSettings(): void {
     minWidth: 660,
     minHeight: 480,
     resizable: true,
-    maximizable: false,
-    fullscreenable: false,
+    maximizable: true,
+    fullscreenable: true,
     title: 'Nudzie',
     show: false,
     webPreferences: {

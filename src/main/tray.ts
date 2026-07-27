@@ -1,7 +1,7 @@
 import { Tray, Menu, nativeImage, app, type NativeImage } from 'electron'
-import { join } from 'node:path'
 import { isPaused, setPaused } from './scheduler'
 import { loadCustomTray } from './store'
+import { buildAssetImage, fallbackTrayImage } from './assets'
 
 let tray: Tray | null = null
 let currentHandlers: TrayHandlers | null = null
@@ -15,8 +15,12 @@ export type TrayHandlers = {
  * Picks the tray image, in priority order:
  *   1. the user's custom-character face (colour, from their uploaded art),
  *   2. the bundled character face build/tray.png (colour, from prepare-assets),
- *   3. the generated bell template (monochrome placeholder).
- * Only the bell is a macOS "template" image; the character faces are colour.
+ *   3. the bundled bell template build/iconTemplate.png,
+ *   4. the inlined bell (assets.ts) - always non-empty.
+ * Only the bells are macOS "template" images; the character faces are colour.
+ *
+ * Never returns an empty image: an empty NativeImage makes the menu-bar item
+ * invisible, and with "Show in Dock" off that leaves the app unreachable.
  */
 function computeTrayImage(): NativeImage {
   const custom = loadCustomTray()
@@ -25,13 +29,16 @@ function computeTrayImage(): NativeImage {
     if (!img.isEmpty()) return img
   }
 
-  const face = nativeImage.createFromPath(join(app.getAppPath(), 'build', 'tray.png'))
-  if (!face.isEmpty()) return face // colour character icon (@2x auto-picked)
+  const face = buildAssetImage('tray.png')
+  if (face) return face // colour character icon (@2x auto-picked)
 
-  let bell = nativeImage.createFromPath(join(app.getAppPath(), 'build', 'iconTemplate.png'))
-  if (bell.isEmpty()) bell = nativeImage.createEmpty()
-  if (process.platform === 'darwin') bell.setTemplateImage(true)
-  return bell
+  const bell = buildAssetImage('iconTemplate.png')
+  if (bell) {
+    if (process.platform === 'darwin') bell.setTemplateImage(true)
+    return bell
+  }
+
+  return fallbackTrayImage()
 }
 
 /**
@@ -39,9 +46,17 @@ function computeTrayImage(): NativeImage {
  * (settings + a test reminder); folded in = Hydrate Buddy's manual controls
  * (pause reminders, quit). The icon is the character's face.
  */
-export function createTray(handlers: TrayHandlers): Tray {
+export function createTray(handlers: TrayHandlers): Tray | null {
   currentHandlers = handlers
-  tray = new Tray(computeTrayImage())
+  try {
+    tray = new Tray(computeTrayImage())
+  } catch (err) {
+    // If the menu-bar item can't be created the app must not also hide its Dock
+    // icon, or it becomes unreachable - see applyDockMode() in platform.ts.
+    console.error('[tray] could not create the menu-bar icon:', err)
+    tray = null
+    return null
+  }
   rebuild()
   return tray
 }

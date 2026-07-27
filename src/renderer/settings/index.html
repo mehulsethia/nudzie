@@ -81,35 +81,43 @@
             <div class="form-title"><h3 id="sched-form-title">Add a reminder</h3></div>
             <label class="field"><span>Title</span><input id="sch-title" type="text" placeholder="Take medicine" /></label>
             <label class="field"><span>Message (optional)</span><input id="sch-message" type="text" placeholder="Time for your meds 💊" /></label>
-            <div class="grid2">
-              <label class="field"><span>Repeat</span>
-                <select id="sch-type">
-                  <option value="interval">On a timer (every N min)</option>
-                  <option value="once">Once</option>
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                  <option value="yearly">Yearly</option>
-                </select>
-              </label>
-              <label class="field" id="sch-time-wrap"><span>Time</span><input id="sch-time" type="time" value="09:00" /></label>
-            </div>
+            <!-- Repeat sits on its own line: it decides which fields below appear. -->
+            <label class="field"><span>Repeat</span>
+              <select id="sch-type">
+                <option value="interval">On a timer (every N min)</option>
+                <option value="once">Once</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+              </select>
+            </label>
+            <!-- Cadence on its own line, then the active-hours pair together:
+                 "from" and "until" are one setting and belong side by side. -->
             <div class="hidden" id="sch-interval-row">
+              <label class="field field-half"><span>Every (minutes)</span><input id="sch-every" type="number" min="1" max="600" value="60" /></label>
               <div class="grid2">
-                <label class="field"><span>Every (minutes)</span><input id="sch-every" type="number" min="1" max="600" value="60" /></label>
                 <label class="field"><span>Active from (hour, 0-23)</span><input id="sch-active-start" type="number" min="0" max="23" value="10" /></label>
                 <label class="field"><span>Active until (hour, 0-23)</span><input id="sch-active-end" type="number" min="0" max="23" value="19" /></label>
               </div>
             </div>
-            <label class="field hidden" id="sch-once-row"><span>Date</span><input id="sch-date" type="date" /></label>
+            <!-- The weekly day chips need the full width, so they stay above. -->
             <div class="field hidden" id="sch-weekly-row">
               <span>Days</span>
               <div id="sch-days" class="days-row"></div>
             </div>
-            <label class="field hidden" id="sch-monthly-row"><span>Day of month (1-31)</span><input id="sch-dom" type="number" min="1" max="31" value="1" /></label>
-            <div class="grid2 hidden" id="sch-yearly-row">
-              <label class="field"><span>Month</span><select id="sch-month"></select></label>
-              <label class="field"><span>Day</span><input id="sch-yday" type="number" min="1" max="31" value="1" /></label>
+            <!-- When it happens: the chosen repeat's date field(s) share this line
+                 with Time. Hidden children drop out, so each repeat type lays out
+                 as one row (Date + Time, Day of month + Time, Month + Day + Time,
+                 or Time on its own for daily/weekly). -->
+            <div class="when-row">
+              <label class="field hidden" id="sch-once-row"><span>Date</span><input id="sch-date" type="date" /></label>
+              <label class="field hidden" id="sch-monthly-row"><span>Day of month (1-31)</span><input id="sch-dom" type="number" min="1" max="31" value="1" /></label>
+              <div class="when-pair hidden" id="sch-yearly-row">
+                <label class="field"><span>Month</span><select id="sch-month"></select></label>
+                <label class="field"><span>Day</span><input id="sch-yday" type="number" min="1" max="31" value="1" /></label>
+              </div>
+              <label class="field" id="sch-time-wrap"><span>Time</span><input id="sch-time" type="time" value="09:00" /></label>
             </div>
             <div class="row">
               <button id="sch-add" class="btn btn-primary">Add reminder</button>

@@ -126,11 +126,28 @@ body {
   text-transform: uppercase;
   text-align: center;
   margin-bottom: 14px;
-  /* Safety net so an unusually long message can't overflow the window
-     (the scheduler also truncates long meeting titles). */
   overflow-wrap: break-word;
+}
+
+/* The reminder's title. */
+.bubble-head {
+  /* Safety net so an unusually long title can't overflow the window
+     (the scheduler also truncates long meeting titles). */
   display: -webkit-box;
-  -webkit-line-clamp: 5;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* The optional message, sitting under the title in smaller, softer type. */
+.bubble-sub {
+  font-size: 11px;
+  line-height: 1.5;
+  margin-top: 6px;
+  opacity: 0.72;
+  text-transform: none;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
