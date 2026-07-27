@@ -206,7 +206,7 @@ $<HTMLButtonElement>('test-btn').addEventListener('click', () => void q.testRemi
 $<HTMLButtonElement>('side-test-btn').addEventListener('click', () => void q.testReminder())
 $<HTMLButtonElement>('studio-link').addEventListener('click', () => void q.openExternal(STUDIO_URL))
 void q.appVersion().then((v) => {
-  $('app-version').textContent = `Version ${v}`
+  $('app-version').textContent = `v${v}`
 })
 
 // ---- Snooze length (global, applies to every reminder) ----

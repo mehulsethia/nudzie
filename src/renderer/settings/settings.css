@@ -163,14 +163,11 @@ body {
 }
 .link-btn:hover { text-decoration: underline; }
 
-/* Build number under the credit - small, so a bug report can name the version. */
-.studio-version {
-  margin: 4px 0 0;
-  text-align: center;
-  font-size: 10px;
-  color: var(--muted);
-  opacity: 0.75;
-}
+/* Build number, inline after the credit so the two share one row. The dot
+   separator is a pseudo-element, so it can't be selected or copied with the
+   version string, and it never appears before the version has loaded. */
+.studio-version:not(:empty)::before { content: ' · '; }
+.studio-version { opacity: 0.8; }
 
 /* ------------------------------------------------------------------ content */
 #content {
@@ -694,6 +691,8 @@ input[type='file'] { font-family: var(--body); font-size: 12px; }
 .pro-activate-label { font-family: var(--pix); font-size: 14px; margin: 0 0 2px; color: var(--ink); }
 .pro-activate .row { margin-top: 8px; }
 .pro-activate input[type='text'] { flex: 1; min-width: 200px; margin: 0; }
+/* Breathing room so the fine print doesn't crowd the key input above it. */
+.pro-activate .row + .muted.small { margin-top: 14px; }
 .pro-active-title { font-family: var(--pix); font-size: 16px; margin: 0 0 6px; color: var(--ink); }
 
 ::-webkit-scrollbar { width: 12px; height: 12px; }
