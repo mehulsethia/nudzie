@@ -76,7 +76,12 @@ nsis:
   allowToChangeInstallationDirectory: true
 
 dmg:
-  title: Nudzie
+  # Versioned on purpose. A bare "Nudzie" volume name makes `hdiutil create`
+  # fail with "Operation not permitted" on a machine that has previously mounted
+  # a Nudzie.dmg — the /Volumes/Nudzie mount point picks up an association that
+  # blocks re-creating it. Including the version keeps the name unique per
+  # release, so the DMG build can't be broken by an earlier install.
+  title: Nudzie ${version}
   window: { width: 600, height: 420 }
   iconSize: 112
   contents:
