@@ -1,4 +1,5 @@
 import { app } from 'electron'
+import log from 'electron-log'
 import { createOverlayWindow } from './windows/overlay'
 import { openSettings } from './windows/settings'
 import { createTray } from './tray'
@@ -88,7 +89,11 @@ app.on('activate', (_event, hasVisibleWindows) => {
   // duplicate instance that's quitting via the single-instance lock). Opening a
   // window then would throw, so wait for the whenReady path to open it instead.
   if (!app.isReady()) return
-  if (shouldOpenSettingsOnActivate(hasVisibleWindows)) openSettings()
+  const open = shouldOpenSettingsOnActivate(hasVisibleWindows)
+  // If the settings window ever pops up on its own again, this says whether we
+  // opened it or macOS raised it (open=false but the window still appeared).
+  log.info('[activate]', { hasVisibleWindows, opensSettings: open })
+  if (open) openSettings()
 })
 
 // Stay alive in the background even when no window is visible.

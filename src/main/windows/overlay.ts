@@ -98,6 +98,16 @@ export function createOverlayWindow(): BrowserWindow {
     fullscreenable: false,
     skipTaskbar: true,
     backgroundColor: '#00000000',
+    // macOS: a non-activating panel (NSPanel). Clicking a normal window's
+    // buttons makes its app frontmost - which is why acknowledging a reminder
+    // used to yank Nudzie forward and drag the settings window up with it.
+    // A panel takes clicks WITHOUT activating the app, so Accept/Snooze no
+    // longer steals focus from whatever the user was doing.
+    //
+    // This is the actual fix; suppressSettingsActivation() only ever blocked
+    // openSettings(), and could never stop macOS raising a window that already
+    // existed.
+    ...(process.platform === 'darwin' ? { type: 'panel' as const } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
