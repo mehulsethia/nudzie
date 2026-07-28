@@ -76,7 +76,17 @@
       .btn:disabled { opacity: 0.55; cursor: not-allowed; }
       .top-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
       .meta { color: var(--muted); font-size: 14px; }
-      .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 18px 0 22px; }
+      .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+      .filters { display: flex; flex-direction: column; gap: 12px; margin: 18px 0 22px; }
+      .filter-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+      .filter-label {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 900;
+        text-transform: uppercase;
+        min-width: 62px;
+      }
+      .note { color: var(--muted); font-size: 13px; margin-top: 10px; }
       .tab {
         min-height: 38px;
         padding: 0 14px;
@@ -185,9 +195,18 @@
         </div>
       </header>
 
-      <div class="tabs">
-        <button class="tab active" data-mode="live" type="button">Live</button>
-        <button class="tab" data-mode="test" type="button">Test</button>
+      <div class="filters">
+        <div class="filter-row">
+          <span class="filter-label">Mode</span>
+          <div class="tabs">
+            <button class="tab active" data-mode="live" type="button">Live</button>
+            <button class="tab" data-mode="test" type="button">Test</button>
+          </div>
+        </div>
+        <div class="filter-row">
+          <span class="filter-label">Period</span>
+          <div class="tabs" id="rangeTabs"></div>
+        </div>
       </div>
 
       <section class="grid" id="metrics"></section>
@@ -220,7 +239,16 @@
       (function(){
         var INACTIVITY_LIMIT_MS=15*60*1000;
         var TOUCH_INTERVAL_MS=60*1000;
-        var state={data:null,mode:'live'};
+        var RANGES=[
+          {id:'today',label:'Today'},
+          {id:'7d',label:'Last 7 days'},
+          {id:'30d',label:'Last 30 days'},
+          {id:'3m',label:'Last 3 months'},
+          {id:'6m',label:'Last 6 months'},
+          {id:'1y',label:'Last 1 year'},
+          {id:'all',label:'All time'}
+        ];
+        var state={data:null,mode:'live',range:'all'};
         var idleTimer=null;
         var idleWatching=false;
         var lastTouch=0;
@@ -233,6 +261,7 @@
         var metrics=document.getElementById('metrics');
         var downloads=document.getElementById('downloads');
         var licenseHealth=document.getElementById('licenseHealth');
+        var rangeTabs=document.getElementById('rangeTabs');
         var paymentsTable=document.getElementById('paymentsTable');
         var licensesTable=document.getElementById('licensesTable');
         var generatedAt=document.getElementById('generatedAt');
@@ -297,19 +326,79 @@
           var modes=(state.data&&state.data.modes)||[];
           return modes.find(function(m){return m.mode===state.mode;})||modes[0]||null;
         }
+        function currentRange(){
+          return RANGES.find(function(r){return r.id===state.range;})||RANGES[RANGES.length-1];
+        }
+        // Boundaries are computed in the viewer's local timezone, so "Today" means
+        // today where you are, not UTC.
+        function rangeStart(id){
+          var now=new Date();
+          if(id==='today'){var d=new Date(now);d.setHours(0,0,0,0);return d.getTime();}
+          if(id==='all') return 0;
+          var months={'3m':3,'6m':6,'1y':12}[id];
+          if(months){var m=new Date(now);m.setMonth(m.getMonth()-months);return m.getTime();}
+          var days={'7d':7,'30d':30}[id]||0;
+          return now.getTime()-days*24*60*60*1000;
+        }
+        function inRange(row,start){
+          if(!start) return true;
+          var t=row.date?new Date(row.date).getTime():0;
+          return isFinite(t)&&t>=start;
+        }
+        function summarize(mode,start){
+          var payments=(mode.payments||[]).filter(function(p){return inRange(p,start);});
+          var licenses=(mode.licenses||[]).filter(function(l){return inRange(l,start);});
+          var succeeded=payments.filter(function(p){return p.status==='succeeded';});
+          var refunded=payments.filter(function(p){return p.refundStatus&&p.refundStatus!=='none';});
+          var revenue=succeeded.reduce(function(sum,p){return sum+(p.amount||0);},0);
+          var activations=licenses.reduce(function(sum,l){return sum+(l.activations||0);},0);
+          var customers={};
+          payments.forEach(function(p){var k=p.email||p.customerId;if(k) customers[k]=true;});
+          return {
+            mode:mode.mode,
+            configured:mode.configured,
+            productId:mode.productId,
+            currency:(succeeded[0]&&succeeded[0].currency)||(payments[0]&&payments[0].currency)||'USD',
+            payments:payments.length,
+            paidOrders:succeeded.length,
+            failedPayments:payments.filter(function(p){return p.status==='failed';}).length,
+            cancelledPayments:payments.filter(function(p){return p.status==='cancelled';}).length,
+            refundedPayments:refunded.length,
+            customers:Object.keys(customers).length,
+            revenue:Math.round(revenue*100)/100,
+            avgOrder:succeeded.length?Math.round((revenue/succeeded.length)*100)/100:0,
+            licenses:licenses.length,
+            activeLicenses:licenses.filter(function(l){return l.status==='active';}).length,
+            disabledLicenses:licenses.filter(function(l){return l.status==='disabled';}).length,
+            expiredLicenses:licenses.filter(function(l){return l.status==='expired';}).length,
+            activatedDevices:activations,
+            unactivatedLicenses:licenses.filter(function(l){return (l.activations||0)===0;}).length,
+            licenseUtilization:licenses.length?Math.round((activations/licenses.length)*100):0,
+            recentPayments:payments.slice(0,12),
+            recentLicenses:licenses.slice(0,12)
+          };
+        }
         function metric(label,value,sub){
           return '<div class="metric"><div class="label">'+label+'</div><div class="value">'+value+'</div><div class="sub">'+(sub||'')+'</div></div>';
         }
-        function renderMetrics(mode){
+        function renderRangeTabs(){
+          rangeTabs.innerHTML=RANGES.map(function(r){
+            return '<button class="tab'+(r.id===state.range?' active':'')+'" data-range="'+r.id+'" type="button">'+r.label+'</button>';
+          }).join('');
+          rangeTabs.querySelectorAll('.tab').forEach(function(tab){
+            tab.addEventListener('click',function(){state.range=tab.dataset.range;render();});
+          });
+        }
+        function renderMetrics(s,rangeLabel){
           metrics.innerHTML=[
-            metric('Revenue',money(mode.revenue,mode.currency),money(mode.revenue30,mode.currency)+' in last 30 days'),
-            metric('Paid Orders',num(mode.paidOrders),num(mode.orders7)+' last 7 days / '+num(mode.orders30)+' last 30 days'),
-            metric('Customers',num(mode.customers),num(mode.payments)+' total payment attempts'),
-            metric('Active Licenses',num(mode.activeLicenses),num(mode.licenses)+' total licenses'),
-            metric('Activated Devices',num(mode.activatedDevices),num(mode.unactivatedLicenses)+' unactivated licenses'),
-            metric('Failed/Cancelled',num(mode.failedPayments+mode.cancelledPayments),num(mode.refundedPayments)+' refunded/partial refund'),
-            metric('Mode',mode.mode.toUpperCase(),mode.configured?'Dodo API configured':'Dodo API missing'),
-            metric('Product',mode.productId,'Nudzie Pro')
+            metric('Revenue',money(s.revenue,s.currency),rangeLabel),
+            metric('Paid Orders',num(s.paidOrders),money(s.avgOrder,s.currency)+' average order'),
+            metric('Customers',num(s.customers),num(s.payments)+' payment attempts'),
+            metric('Active Licenses',num(s.activeLicenses),num(s.licenses)+' licenses issued'),
+            metric('Activated Devices',num(s.activatedDevices),num(s.unactivatedLicenses)+' unactivated licenses'),
+            metric('Failed/Cancelled',num(s.failedPayments+s.cancelledPayments),num(s.refundedPayments)+' refunded/partial refund'),
+            metric('Mode',s.mode.toUpperCase(),s.configured?'Dodo API configured':'Dodo API missing'),
+            metric('Product',s.productId,'Nudzie Pro')
           ].join('');
         }
         function renderDownloads(data){
@@ -318,23 +407,28 @@
           var rows=(d.assets||[]).map(function(a){
             return '<tr><td class="mono">'+a.name+'</td><td>'+num(a.downloads)+'</td><td>'+date(a.updatedAt)+'</td></tr>';
           }).join('');
+          var releases=(d.releases||[]).map(function(r){
+            return '<tr><td class="mono">'+r.release+'</td><td>'+num(r.downloads)+'</td><td>'+date(r.publishedAt)+'</td></tr>';
+          }).join('');
           downloads.innerHTML=
             '<div class="grid" style="grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px">'+
-              metric('Total',num(d.total),'all latest assets')+
+              metric('Total',num(d.total),'across '+num(d.releaseCount)+' releases')+
               metric('macOS',num(d.mac),'.dmg downloads')+
               metric('Windows',num(d.windows),'.exe downloads')+
-              metric('Other',num(d.other),'other assets')+
+              metric('Updater',num(d.other),'.zip / .yml / blockmaps')+
             '</div>'+
-            '<div class="meta">'+(d.release||'Latest release')+' / '+(d.publishedAt?date(d.publishedAt):'')+'</div>'+
-            '<div class="table-wrap"><table><thead><tr><th>Asset</th><th>Downloads</th><th>Updated</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+            '<div class="meta">Latest: '+(d.release||'-')+' / '+(d.publishedAt?date(d.publishedAt):'-')+'</div>'+
+            '<div class="table-wrap"><table><thead><tr><th>Asset (all releases)</th><th>Downloads</th><th>Last updated</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+            (releases?'<div class="table-wrap" style="margin-top:14px"><table><thead><tr><th>Release</th><th>Downloads</th><th>Published</th></tr></thead><tbody>'+releases+'</tbody></table></div>':'')+
+            '<p class="note">Lifetime totals. GitHub reports only a cumulative counter per asset with no timestamps, so downloads ignore the period filter. Counters also reset whenever an asset is re-uploaded to a release.</p>';
         }
-        function renderLicenseHealth(mode){
-          var pct=Math.max(0,Math.min(100,mode.licenseUtilization||0));
+        function renderLicenseHealth(s,rangeLabel){
+          var pct=Math.max(0,Math.min(100,s.licenseUtilization||0));
           licenseHealth.innerHTML=
-            '<p class="meta">Activation usage across issued licenses.</p>'+
+            '<p class="meta">Activation usage across licenses issued in this period ('+rangeLabel.toLowerCase()+').</p>'+
             '<div class="bar"><span style="width:'+pct+'%"></span></div>'+
-            '<p><b>'+pct+'%</b> utilization / '+num(mode.activatedDevices)+' active device activations over '+num(mode.licenses)+' licenses.</p>'+
-            '<p>'+num(mode.disabledLicenses)+' disabled / '+num(mode.expiredLicenses)+' expired / '+num(mode.unactivatedLicenses)+' not activated yet.</p>';
+            '<p><b>'+pct+'%</b> utilization / '+num(s.activatedDevices)+' active device activations over '+num(s.licenses)+' licenses.</p>'+
+            '<p>'+num(s.disabledLicenses)+' disabled / '+num(s.expiredLicenses)+' expired / '+num(s.unactivatedLicenses)+' not activated yet.</p>';
         }
         function table(rows,columns,empty){
           if(!rows||!rows.length) return '<div class="empty">'+empty+'</div>';
@@ -342,7 +436,7 @@
             rows.map(function(r){return '<tr>'+columns.map(function(c){return '<td>'+c.render(r)+'</td>';}).join('')+'</tr>';}).join('')+
             '</tbody></table>';
         }
-        function renderTables(mode){
+        function renderTables(mode,rangeLabel){
           paymentsTable.innerHTML=table(mode.recentPayments,[
             {label:'Date',render:function(r){return date(r.date);}},
             {label:'Customer',render:function(r){return r.email||'-';}},
@@ -350,7 +444,7 @@
             {label:'Status',render:function(r){return statusPill(r.status);}},
             {label:'Refund',render:function(r){return r.refundStatus||'-';}},
             {label:'Payment ID',render:function(r){return '<span class="mono">'+(r.id||'-')+'</span>';}}
-          ],'No payments found for this mode.');
+          ],'No payments in this period ('+rangeLabel.toLowerCase()+').');
           licensesTable.innerHTML=table(mode.recentLicenses,[
             {label:'Date',render:function(r){return date(r.date);}},
             {label:'Key',render:function(r){return '<span class="mono">'+(r.key||'-')+'</span>';}},
@@ -358,17 +452,20 @@
             {label:'Activations',render:function(r){return num(r.activations)+' / '+(r.activationLimit==null?'unlimited':num(r.activationLimit));}},
             {label:'Payment ID',render:function(r){return '<span class="mono">'+(r.paymentId||'-')+'</span>';}},
             {label:'License ID',render:function(r){return '<span class="mono">'+(r.id||'-')+'</span>';}}
-          ],'No licenses found for this mode.');
+          ],'No licenses in this period ('+rangeLabel.toLowerCase()+').');
         }
         function render(){
           var mode=currentMode();
           if(!mode) return;
+          var range=currentRange();
+          var summary=summarize(mode,rangeStart(range.id));
           generatedAt.textContent='Generated '+date(state.data.generatedAt)+' - '+state.data.admin;
-          document.querySelectorAll('.tab').forEach(function(tab){tab.classList.toggle('active',tab.dataset.mode===state.mode);});
-          renderMetrics(mode);
+          document.querySelectorAll('.tab[data-mode]').forEach(function(tab){tab.classList.toggle('active',tab.dataset.mode===state.mode);});
+          renderRangeTabs();
+          renderMetrics(summary,range.label);
           renderDownloads(state.data);
-          renderLicenseHealth(mode);
-          renderTables(mode);
+          renderLicenseHealth(summary,range.label);
+          renderTables(summary,range.label);
         }
         async function loadData(){
           hide(dashError);
@@ -402,7 +499,7 @@
         document.getElementById('logoutBtn').addEventListener('click',async function(){
           await logout();
         });
-        document.querySelectorAll('.tab').forEach(function(tab){
+        document.querySelectorAll('.tab[data-mode]').forEach(function(tab){
           tab.addEventListener('click',function(){state.mode=tab.dataset.mode;render();});
         });
         loadData().catch(function(){show(login);});

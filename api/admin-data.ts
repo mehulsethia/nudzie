@@ -61,9 +61,12 @@ type GitHubRelease = {
 
 const DEFAULT_TEST_PRODUCT_ID = 'pdt_0NjNhzbBKhRAFXIfhHWst'
 const DEFAULT_LIVE_PRODUCT_ID = 'pdt_0NjNGaI7YglU4NWijdT4B'
+// All releases, not just the latest one: GitHub resets an asset's download_count
+// every time the asset is re-uploaded, so per-release counters only ever describe
+// the current build. Lifetime downloads = sum across every release.
 const GITHUB_RELEASES_API =
   process.env.NUDZIE_RELEASES_API ||
-  'https://api.github.com/repos/mehulsethia/nudzie-releases/releases/latest'
+  'https://api.github.com/repos/mehulsethia/nudzie-releases/releases'
 const ADMIN_EMAIL = 'mehul@senseibles.com'
 const ADMIN_PASSWORD_SHA256 =
   process.env.ADMIN_PASSWORD_SHA256 ||
@@ -177,10 +180,6 @@ function centsToMajor(value: number): number {
   return Math.round(value) / 100
 }
 
-function daysAgo(days: number): number {
-  return Date.now() - days * 24 * 60 * 60 * 1000
-}
-
 function timeValue(value?: string): number {
   if (!value) return 0
   const parsed = new Date(value).getTime()
@@ -192,73 +191,36 @@ function maskKey(value?: string): string | null {
   return value.length <= 10 ? '****' : `${value.slice(0, 4)}...${value.slice(-4)}`
 }
 
-function uniqueCount(values: Array<string | undefined>): number {
-  return new Set(values.filter((value): value is string => !!value)).size
-}
-
-function summarizeMode(mode: Mode, payments: Payment[], licenses: LicenseKey[]) {
-  const now7 = daysAgo(7)
-  const now30 = daysAgo(30)
-  const succeeded = payments.filter((p) => p.status === 'succeeded')
-  const failed = payments.filter((p) => p.status === 'failed')
-  const cancelled = payments.filter((p) => p.status === 'cancelled')
-  const refunded = payments.filter((p) => p.refund_status && p.refund_status !== 'none')
-  const revenueCents = succeeded.reduce((sum, p) => sum + (p.total_amount || 0), 0)
-  const revenue30Cents = succeeded
-    .filter((p) => timeValue(p.created_at) >= now30)
-    .reduce((sum, p) => sum + (p.total_amount || 0), 0)
-  const activeLicenses = licenses.filter((l) => l.status === 'active')
-  const disabledLicenses = licenses.filter((l) => l.status === 'disabled')
-  const expiredLicenses = licenses.filter((l) => l.status === 'expired')
-  const activationsUsed = licenses.reduce((sum, l) => sum + (l.instances_count || 0), 0)
-
+// Rows go to the browser unaggregated so the dashboard can re-slice them by any
+// time span (in the viewer's own timezone) without another round trip to Dodo.
+function slimMode(mode: Mode, payments: Payment[], licenses: LicenseKey[]) {
   return {
     mode,
     configured: !!modeApiKey(mode),
     productId: modeProductId(mode),
-    currency: succeeded[0]?.currency || 'USD',
-    payments: payments.length,
-    paidOrders: succeeded.length,
-    failedPayments: failed.length,
-    cancelledPayments: cancelled.length,
-    refundedPayments: refunded.length,
-    customers: uniqueCount(payments.map((p) => p.customer?.email || p.customer?.customer_id)),
-    revenue: centsToMajor(revenueCents),
-    revenue30: centsToMajor(revenue30Cents),
-    orders7: succeeded.filter((p) => timeValue(p.created_at) >= now7).length,
-    orders30: succeeded.filter((p) => timeValue(p.created_at) >= now30).length,
-    licenses: licenses.length,
-    activeLicenses: activeLicenses.length,
-    disabledLicenses: disabledLicenses.length,
-    expiredLicenses: expiredLicenses.length,
-    activatedDevices: activationsUsed,
-    unactivatedLicenses: licenses.filter((l) => (l.instances_count || 0) === 0).length,
-    licenseUtilization:
-      licenses.length > 0 ? Math.round((activationsUsed / licenses.length) * 100) : 0,
-    recentPayments: payments
+    payments: payments
       .slice()
       .sort((a, b) => timeValue(b.created_at) - timeValue(a.created_at))
-      .slice(0, 12)
       .map((p) => ({
-        id: p.payment_id,
-        date: p.created_at,
+        id: p.payment_id || null,
+        date: p.created_at || null,
         email: p.customer?.email || null,
+        customerId: p.customer?.customer_id || null,
         amount: centsToMajor(p.total_amount || 0),
         currency: p.currency || null,
         status: p.status || null,
         refundStatus: p.refund_status || null
       })),
-    recentLicenses: licenses
+    licenses: licenses
       .slice()
       .sort((a, b) => timeValue(b.created_at) - timeValue(a.created_at))
-      .slice(0, 12)
       .map((l) => ({
-        id: l.id,
-        date: l.created_at,
+        id: l.id || null,
+        date: l.created_at || null,
         key: maskKey(l.key),
         status: l.status || null,
         activations: l.instances_count || 0,
-        activationLimit: l.activations_limit,
+        activationLimit: l.activations_limit ?? null,
         paymentId: l.payment_id || null
       }))
   }
@@ -270,44 +232,79 @@ async function fetchMode(mode: Mode) {
     dodoList<Payment>(mode, '/payments', { product_id }),
     dodoList<LicenseKey>(mode, '/license_keys', { product_id })
   ])
-  return summarizeMode(mode, payments, licenses)
+  return slimMode(mode, payments, licenses)
 }
 
 async function fetchDownloads() {
   try {
-    const response = await fetch(GITHUB_RELEASES_API, {
-      headers: {
-        Accept: 'application/vnd.github+json',
-        'User-Agent': 'nudzie-admin-dashboard'
+    const url = new URL(GITHUB_RELEASES_API)
+    if (!url.searchParams.has('per_page')) url.searchParams.set('per_page', '100')
+    const headers: Record<string, string> = {
+      Accept: 'application/vnd.github+json',
+      'User-Agent': 'nudzie-admin-dashboard'
+    }
+    const token = process.env.GITHUB_TOKEN || process.env.NUDZIE_RELEASES_TOKEN
+    if (token) headers.Authorization = `Bearer ${token}`
+
+    const response = await fetch(url, { headers })
+    if (!response.ok) throw new Error(`GitHub releases failed with HTTP ${response.status}`)
+    const payload = (await response.json()) as GitHubRelease | GitHubRelease[]
+    const releases = Array.isArray(payload) ? payload : [payload]
+    if (releases.length === 0) throw new Error('No releases published yet.')
+
+    const sorted = releases
+      .slice()
+      .sort((a, b) => timeValue(b.published_at) - timeValue(a.published_at))
+    const latest = sorted[0]
+
+    // Same asset name across releases (Nudzie.dmg in v0.1.0, v0.1.1, ...) rolls up
+    // into a single lifetime row.
+    const totals = new Map<string, { name: string; downloads: number; updatedAt: string | null }>()
+    const byRelease = sorted.map((release) => {
+      const assets = release.assets || []
+      let releaseTotal = 0
+      for (const asset of assets) {
+        const name = asset.name || 'unknown'
+        const downloads = asset.download_count || 0
+        releaseTotal += downloads
+        const existing = totals.get(name)
+        if (existing) {
+          existing.downloads += downloads
+          if (timeValue(asset.updated_at) > timeValue(existing.updatedAt || undefined)) {
+            existing.updatedAt = asset.updated_at || existing.updatedAt
+          }
+        } else {
+          totals.set(name, { name, downloads, updatedAt: asset.updated_at || null })
+        }
+      }
+      return {
+        release: release.name || release.tag_name || 'untagged',
+        publishedAt: release.published_at || null,
+        url: release.html_url || null,
+        downloads: releaseTotal
       }
     })
-    if (!response.ok) throw new Error(`GitHub release failed with HTTP ${response.status}`)
-    const release = (await response.json()) as GitHubRelease
-    const assets = release.assets || []
-    const byAsset = assets.map((asset) => ({
-      name: asset.name || 'unknown',
-      downloads: asset.download_count || 0,
-      size: asset.size || 0,
-      url: asset.browser_download_url || null,
-      updatedAt: asset.updated_at || null
-    }))
-    const mac = byAsset
-      .filter((asset) => /\.dmg$/i.test(asset.name))
-      .reduce((sum, asset) => sum + asset.downloads, 0)
-    const windows = byAsset
-      .filter((asset) => /\.exe$/i.test(asset.name))
-      .reduce((sum, asset) => sum + asset.downloads, 0)
-    const total = byAsset.reduce((sum, asset) => sum + asset.downloads, 0)
+
+    const assetTotals = Array.from(totals.values()).sort((a, b) => b.downloads - a.downloads)
+    const sumWhere = (test: (name: string) => boolean) =>
+      assetTotals.filter((a) => test(a.name)).reduce((sum, a) => sum + a.downloads, 0)
+    // .zip / .yml / .blockmap are auto-updater traffic, not user downloads.
+    const mac = sumWhere((name) => /\.dmg$/i.test(name))
+    const windows = sumWhere((name) => /\.exe$/i.test(name))
+    const total = assetTotals.reduce((sum, a) => sum + a.downloads, 0)
+
     return {
       configured: true,
-      release: release.name || release.tag_name || 'latest',
-      publishedAt: release.published_at || null,
-      url: release.html_url || null,
+      release: latest.name || latest.tag_name || 'latest',
+      publishedAt: latest.published_at || null,
+      url: latest.html_url || null,
+      releaseCount: sorted.length,
       total,
       mac,
       windows,
       other: total - mac - windows,
-      assets: byAsset
+      assets: assetTotals,
+      releases: byRelease
     }
   } catch (error) {
     return {
@@ -317,7 +314,8 @@ async function fetchDownloads() {
       mac: 0,
       windows: 0,
       other: 0,
-      assets: []
+      assets: [],
+      releases: []
     }
   }
 }
