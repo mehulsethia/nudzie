@@ -367,12 +367,33 @@ summary::-webkit-details-marker{display:none}
 summary::after{content:"+";font-size:1.4rem;color:var(--grape-text);transition:transform .2s}
 details[open] summary::after{transform:rotate(45deg)}
 details p{margin:0;padding:0 20px 18px;color:var(--bubble-muted);font-size:.96rem}
+.faq details p a{font-family:inherit;font-weight:600;color:var(--grape-text);text-decoration:none;border-bottom:2px solid color-mix(in srgb,var(--grape) 45%,transparent)}
+.faq details p a:hover{border-bottom-color:var(--grape)}
 
 /* ---------- studio ---------- */
 .studio-card{max-width:760px;margin:0 auto;text-align:center;padding:34px 30px}
 .studio-card p{font-size:1.02rem;line-height:1.7}
 .studio-quote{margin-top:20px !important;color:var(--grape-text) !important;font-family:'Pixelify Sans';font-size:1.02rem}
 .studio-cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:26px}
+
+
+/* ---------- reel band (creator discount teaser) ---------- */
+.reel-wrap{padding:0 0 8px}
+.reel-band{
+  display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;
+  text-align:center;text-decoration:none;color:inherit;
+  border:3px dashed color-mix(in srgb,var(--grape) 55%,transparent);
+  border-radius:var(--radius);
+  background:color-mix(in srgb,var(--grape) 8%,transparent);
+  padding:22px 26px;
+  transition:border-color .12s ease,background .12s ease;
+}
+.reel-band:hover{border-color:var(--grape);background:color-mix(in srgb,var(--grape) 14%,transparent)}
+.reel-band .clap{font-size:1.5rem;line-height:1}
+.reel-band .say{font-family:'Pixelify Sans';font-size:1.18rem;letter-spacing:.4px}
+.reel-band .go{color:var(--grape-text);font-weight:600;font-size:.98rem}
+.reel-band:hover .go{text-decoration:underline}
+@media(max-width:560px){.reel-band{padding:20px 18px}.reel-band .say{font-size:1.02rem}}
 
 /* ---------- footer ---------- */
 /* footer.wrap (0,1,1) must beat .wrap's padding (0,1,0), or its top/bottom padding is reset to 0 */
@@ -442,6 +463,7 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
       <a href="#how">How it works</a>
       <a href="#see">See it</a>
       <a href="#pricing">Pricing</a>
+      <a href="/discount">Save 50%</a>
       <a href="#faq">FAQ</a>
       <a class="btn primary nav-cta" href="https://github.com/mehulsethia/nudzie-releases/releases/latest/download/Nudzie.dmg">Download for macOS</a>
       <button class="theme-btn" id="themeBtn" title="Toggle theme" aria-label="Toggle light or dark theme">◐</button>
@@ -708,6 +730,14 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
   </div>
 </section>
 
+<section class="wrap reel-wrap">
+  <a class="reel-band" href="/discount">
+    <span class="clap">🎬</span>
+    <span class="say">Make a reel, get Nudzie for free.</span>
+    <span class="go">See how it works ➡️</span>
+  </a>
+</section>
+
 <!-- privacy -->
 <section class="section wrap" id="privacy">
   <div class="privacy">
@@ -728,10 +758,12 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
     <details><summary>Which calendars work?</summary><p>Google Calendar, Apple iCloud (via CalDAV), and any public iCal / .ics link. It's read-only - Nudzie never edits or deletes your events.</p></details>
     <details><summary>Does it work over fullscreen apps?</summary><p>Yes. The buddy floats above everything, including fullscreen video calls, and never blocks your clicks - it stays out of the way until it's time to nudge.</p></details>
     <details><summary>What's free, and what's Pro?</summary><p>Free gives you three base characters, one calendar source, unlimited manual and repeating reminders, your own message, the White bubble, System font, and Default chime. Pro is a one-time $9.99 and unlocks all bubble colours, all extra fonts, custom character use, bundled sounds, custom sound upload, and combining multiple calendars.</p></details>
+    <details><summary>It's too expensive. Can I get a discount?</summary><p>Yes! Post about Nudzie, tag <b>@mehul.sethia</b>, <b>@nudzie.app</b> and add <b>#nudzie</b>. Hit 2,000 views and we'll refund you. <a href="/discount">See how it works →</a></p></details>
     <details><summary>Why does Nudzie ask for Google Calendar access?</summary><p>Nudzie reads your primary Google Calendar only to find upcoming events and show reminder nudges before meetings. Access is read-only, processed on your device, and Nudzie never edits calendar events or sends calendar data to a server.</p></details>
     <details><summary>What about my privacy?</summary><p>Reminder and calendar data stays on your device. No telemetry or analytics. Calendar data stays in memory; only an encrypted sign-in token can be saved, and only with your permission. Pro purchases are handled by Dodo Payments.</p></details>
     <details><summary>Which platforms?</summary><p>macOS (Apple Silicon &amp; Intel) — the same buddy runs natively on both Apple Silicon and Intel Macs. More platforms can follow.</p></details>
     <details><summary>How do I uninstall it?</summary><p>Quit from the menu bar and drag the app to the Trash. Reminder and calendar data is local to your computer. If you use Pro, deactivate your license before uninstalling when possible.</p></details>
+    <details><summary>How can I suggest some ideas and improvements?</summary><p>You can suggest some ideas and improvements by contacting us by email at <a href="mailto:mehul@senseibles.com?subject=Nudzie%20idea">mehul@senseibles.com</a>.</p></details>
   </div>
 </section>
 
@@ -759,6 +791,7 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
       <a href="#download">Download</a>
       <a href="#how">How it works</a>
       <a href="#pricing">Pricing</a>
+      <a href="/discount">Creator Discount</a>
       <a href="https://senseibles.com/" target="_blank" rel="noopener noreferrer">Senseibles</a>
       <a href="/privacy">Privacy</a>
       <a href="/terms">Terms</a>
