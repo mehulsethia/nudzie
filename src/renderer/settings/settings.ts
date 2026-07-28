@@ -229,6 +229,9 @@ const schDom = $<HTMLInputElement>('sch-dom')
 const schMonth = $<HTMLSelectElement>('sch-month')
 const schYDay = $<HTMLInputElement>('sch-yday')
 const schEvery = $<HTMLInputElement>('sch-every')
+const schAtMinute = $<HTMLInputElement>('sch-at-minute')
+const schAtMinuteWrap = $('sch-at-minute-wrap')
+const schAtMinuteNote = $('sch-at-minute-note')
 const schActiveStart = $<HTMLInputElement>('sch-active-start')
 const schActiveEnd = $<HTMLInputElement>('sch-active-end')
 const rowInterval = $('sch-interval-row')
@@ -275,10 +278,51 @@ function updateSchRows(): void {
   rowYearly.classList.toggle('hidden', t !== 'yearly')
   rowInterval.classList.toggle('hidden', t !== 'interval')
   schTimeWrap.classList.toggle('hidden', t === 'interval') // interval has no clock time
+  if (t === 'interval') updateAtMinuteField() // keep "At minute" in step with the cadence
 }
 schType.addEventListener('change', updateSchRows)
 
+/**
+ * "At minute" only makes sense for cadences that tile the hour evenly (5, 10, 15,
+ * 20, 30, 60). A 45-min timer walks across the hour no matter where it starts, so
+ * the field is hidden and the nudges run from the start of the active window.
+ */
+function supportsAtMinute(everyMinutes: number): boolean {
+  return everyMinutes > 0 && everyMinutes <= 60 && 60 % everyMinutes === 0
+}
+
+/** Show/clamp the "At minute" field for the cadence currently typed in. */
+function updateAtMinuteField(): void {
+  const every = Number(schEvery.value) || 0
+  const ok = supportsAtMinute(every)
+  schAtMinuteWrap.classList.toggle('hidden', !ok)
+  schAtMinuteNote.classList.toggle('hidden', ok || every < 1)
+  if (!ok) {
+    // No minute-of-the-hour holds for these, so say where the nudges land instead.
+    if (every >= 1) {
+      const start = clampHour(schActiveStart.value)
+      schAtMinuteNote.textContent =
+        `${every} min doesn't divide the hour - nudges run from the start of the active window (${slotPreview(every, start)} …).`
+    }
+    return
+  }
+  const max = every - 1
+  schAtMinute.max = String(max)
+  schAtMinute.labels?.[0]?.firstElementChild?.replaceChildren(`At minute (0-${max})`)
+  if ((Number(schAtMinute.value) || 0) > max) schAtMinute.value = String(max)
+}
+schEvery.addEventListener('input', updateAtMinuteField)
+schActiveStart.addEventListener('input', updateAtMinuteField)
+
 const pad2 = (n: number): string => String(n).padStart(2, '0')
+
+/** The first few nudge times for a cadence anchored at `startHour`, e.g. "10:00, 10:45, 11:30". */
+function slotPreview(every: number, startHour: number, count = 3): string {
+  return Array.from({ length: count }, (_, i) => {
+    const mins = startHour * 60 + i * every
+    return `${pad2(Math.floor(mins / 60) % 24)}:${pad2(mins % 60)}`
+  }).join(', ')
+}
 
 function describeSchedule(s: Schedule): string {
   const t = s.time
@@ -286,7 +330,10 @@ function describeSchedule(s: Schedule): string {
     case 'interval': {
       const start = s.activeStartHour ?? 0
       const end = s.activeEndHour ?? 24
-      return `Every ${s.everyMinutes ?? 60} min · active ${pad2(start)}:00-${pad2(end)}:00`
+      const every = s.everyMinutes ?? 60
+      return supportsAtMinute(every)
+        ? `Every ${every} min at :${pad2((s.atMinute ?? 0) % every)} · active ${pad2(start)}:00-${pad2(end)}:00`
+        : `Every ${every} min from ${pad2(start)}:00 · until ${pad2(end)}:00`
     }
     case 'once':
       return `Once · ${s.date ?? ''} at ${t}`
@@ -386,6 +433,7 @@ function loadSchedIntoForm(r: ScheduledReminder): void {
   schMonth.value = String(s.type === 'yearly' ? (s.month ?? 1) : 1)
   schYDay.value = String(s.type === 'yearly' ? (s.day ?? 1) : 1)
   schEvery.value = String(s.type === 'interval' ? (s.everyMinutes ?? 60) : 60)
+  schAtMinute.value = String(s.type === 'interval' ? (s.atMinute ?? 0) : 0)
   schActiveStart.value = String(s.type === 'interval' ? (s.activeStartHour ?? 10) : 10)
   schActiveEnd.value = String(s.type === 'interval' ? (s.activeEndHour ?? 19) : 19)
   selectedDays.clear()
@@ -414,6 +462,7 @@ function resetSchedForm(): void {
   schMonth.value = '1'
   schYDay.value = '1'
   schEvery.value = '60'
+  schAtMinute.value = '0'
   schActiveStart.value = '10'
   schActiveEnd.value = '19'
   selectedDays.clear()
@@ -439,7 +488,11 @@ schAdd.addEventListener('click', async () => {
     const start = clampHour(schActiveStart.value)
     const end = clampHour(schActiveEnd.value)
     if (start >= end) return fail('Active "from" must be earlier than "until".')
-    schedule.everyMinutes = Math.max(1, Math.min(600, Number(schEvery.value) || 60))
+    const every = Math.max(1, Math.min(600, Number(schEvery.value) || 60))
+    schedule.everyMinutes = every
+    // Stored even for cadences that ignore it, so the chosen minute survives a
+    // round trip through e.g. a 45-min cadence and comes back on the next edit.
+    schedule.atMinute = Math.max(0, Math.min(59, Number(schAtMinute.value) || 0))
     schedule.activeStartHour = start
     schedule.activeEndHour = end
     schedule.time = ''

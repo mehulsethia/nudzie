@@ -33,6 +33,7 @@ declare global {
     month?: number
     day?: number
     everyMinutes?: number
+    atMinute?: number
     activeStartHour?: number
     activeEndHour?: number
   }

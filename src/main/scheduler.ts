@@ -16,6 +16,7 @@ import { showReminder, clearQueuedReminders, type Reminder } from './windows/ove
 //      active hours, for personal nudges (water, breaks, …).
 // ---------------------------------------------------------------------------
 
+let startedAt = 0 // epoch ms the scheduler last started; slots older than this never fire
 let pollTimer: NodeJS.Timeout | null = null
 let tickTimer: NodeJS.Timeout | null = null
 const snoozeTimers = new Map<string, NodeJS.Timeout>()
@@ -95,6 +96,7 @@ function flushMissed(): void {
 
 export function startScheduler(): void {
   stopScheduler()
+  startedAt = Date.now()
   void refresh()
   pollTimer = setInterval(() => void refresh(), POLL_MS)
   tickTimer = setInterval(tick, TICK_MS)
@@ -285,8 +287,10 @@ export function computeNextOccurrence(s: Schedule, now: Date): number | null {
     const end = s.activeEndHour ?? 24
     const hour = now.getHours()
     if (hour >= start && hour < end) {
-      // Inside the active window → the next nudge is at most everyMinutes away.
-      return now.getTime() + Math.max(1, s.everyMinutes ?? 60) * 60_000
+      // Inside the active window → the next anchored slot.
+      const next = intervalSlotStart(s, now) + Math.max(1, s.everyMinutes ?? 60) * 60_000
+      if (new Date(next).getHours() < end) return next
+      // The next slot falls outside the window - fall through to the window start.
     }
     // Outside the window → the next window start (today if still ahead, else tomorrow).
     const startToday = at(now, now.getFullYear(), now.getMonth(), now.getDate(), start, 0)
@@ -456,10 +460,45 @@ function fireCalendar(id: string, message: string): void {
 
 // --- Interval reminders (list items: repeat every N min inside active hours) ---
 
+// An interval slot we were closed for by more than this is skipped rather than
+// fired late (the same idea as SCHEDULED_CATCHUP_MS, on a shorter fuse).
+const INTERVAL_CATCHUP_MS = 5 * 60_000
+
 /**
- * Evaluate one interval reminder on the tick. Fires when it's inside its active
- * hour window and at least `everyMinutes` have elapsed since it last fired.
- * Returns true when `lastFired` changed (so the caller persists it).
+ * True when the cadence tiles the hour evenly (5, 10, 15, 20, 30, 60 …), which is
+ * the only case where "fires at :MM" holds for every hour. Other cadences (45, 50,
+ * 90 …) walk across the hour by design, so they get no minute-of-hour control -
+ * see `intervalSlotStart`.
+ */
+export function supportsAtMinute(everyMinutes: number): boolean {
+  return everyMinutes > 0 && everyMinutes <= 60 && 60 % everyMinutes === 0
+}
+
+/**
+ * Start of the interval slot at or before `now`. Slots repeat every
+ * `everyMinutes` from a fixed daily anchor, so the cadence lands on the same
+ * wall-clock times each day instead of drifting with when the app was launched.
+ *
+ * The anchor is local midnight + `atMinute` for hour-dividing cadences (so a
+ * 20-min timer at :05 fires 10:05, 10:25, 10:45, …), and the start of the active
+ * window otherwise (a 45-min timer active from 10:00 fires 10:00, 10:45, 11:30, …).
+ */
+export function intervalSlotStart(s: Schedule, now: Date): number {
+  const everyMinutes = Math.max(1, s.everyMinutes ?? 60)
+  const every = everyMinutes * 60_000
+  const anchorMinutes = supportsAtMinute(everyMinutes)
+    ? Math.max(0, Math.min(59, s.atMinute ?? 0)) % everyMinutes
+    : (s.activeStartHour ?? 0) * 60
+  const midnight = new Date(now)
+  midnight.setHours(0, 0, 0, 0)
+  const anchor = midnight.getTime() + anchorMinutes * 60_000
+  return anchor + Math.floor((now.getTime() - anchor) / every) * every
+}
+
+/**
+ * Evaluate one interval reminder on the tick. Fires once per slot, while inside
+ * its active hour window. Returns true when `lastFired` changed (so the caller
+ * persists it).
  */
 function evalInterval(r: ScheduledReminder, now: Date): boolean {
   const s = r.schedule
@@ -468,17 +507,16 @@ function evalInterval(r: ScheduledReminder, now: Date): boolean {
   const hour = now.getHours()
   if (hour < start || hour >= end) return false // outside the active window
 
-  // Arm without firing the first time (e.g. right after enabling) so the first
-  // nudge lands a full interval later, not immediately.
-  if (r.lastFired == null) {
-    r.lastFired = now.getTime()
-    return true
-  }
+  const slot = intervalSlotStart(s, now)
+  if ((r.lastFired ?? 0) >= slot) return false // this slot already handled
 
-  const every = Math.max(1, s.everyMinutes ?? 60) * 60_000
-  if (now.getTime() - r.lastFired < every) return false // not due yet
+  // Only slots that came round while we were running can fire. A first evaluation
+  // (right after enabling) and any slot that passed before launch or while the
+  // machine slept arm silently, so opening the app never produces a nudge.
+  const armed = r.lastFired != null && slot >= startedAt
+  r.lastFired = slot
+  if (!armed || now.getTime() - slot > INTERVAL_CATCHUP_MS) return true
 
-  r.lastFired = now.getTime()
   fireIntervalReminder(r)
   return true
 }

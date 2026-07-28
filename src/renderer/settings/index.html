@@ -99,7 +99,11 @@
             <!-- Cadence on its own line, then the active-hours pair together:
                  "from" and "until" are one setting and belong side by side. -->
             <div class="hidden" id="sch-interval-row">
-              <label class="field field-half"><span>Every (minutes)</span><input id="sch-every" type="number" min="1" max="600" value="60" /></label>
+              <div class="grid2">
+                <label class="field"><span>Every (minutes)</span><input id="sch-every" type="number" min="1" max="600" value="60" /></label>
+                <label class="field" id="sch-at-minute-wrap"><span>At minute (0-59)</span><input id="sch-at-minute" type="number" min="0" max="59" value="0" /></label>
+              </div>
+              <p class="muted small hidden" id="sch-at-minute-note"></p>
               <div class="grid2">
                 <label class="field"><span>Active from (hour, 0-23)</span><input id="sch-active-start" type="number" min="0" max="23" value="10" /></label>
                 <label class="field"><span>Active until (hour, 0-23)</span><input id="sch-active-end" type="number" min="0" max="23" value="19" /></label>

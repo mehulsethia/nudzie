@@ -164,6 +164,18 @@ function showNow(reminder: Reminder): void {
   keepDockVisible()
 }
 
+/**
+ * The `interval:<reminderId>:` prefix shared by every occurrence of one timer
+ * reminder, or null for ids that aren't timer occurrences (calendar, scheduled,
+ * the manual test nudge - all of which carry no reminder id to group by).
+ */
+function intervalSeries(id: string): string | null {
+  const parts = id.split(':')
+  return parts[0] === 'interval' && parts.length === 3 ? `interval:${parts[1]}:` : null
+}
+
+const isSameSeries = (id: string | null, series: string): boolean => id != null && id.startsWith(series)
+
 /** Sends the next queued reminder to the overlay, if it's free and ready. */
 function pump(): void {
   if (showing || !ready) return
@@ -229,6 +241,14 @@ export function showReminder(reminder: Reminder): void {
     // De-dupe: don't queue (or re-queue) a reminder that's already showing or
     // waiting - e.g. a repeated snooze re-show of the same id.
     if (currentId === full.id || queue.some((r) => r.id === full.id)) return
+
+    // Timer reminders also collapse across occurrences: each slot gets its own id
+    // (`interval:<reminderId>:<ts>`), but a stale "drink water" nudge has no value
+    // once an unacknowledged one is already on screen. Skip the new occurrence
+    // rather than stacking one per slot while the user is away. Calendar and
+    // scheduled reminders are distinct events, so they still queue individually.
+    const series = intervalSeries(full.id)
+    if (series && (isSameSeries(currentId, series) || queue.some((r) => isSameSeries(r.id, series)))) return
     if (queue.length >= MAX_QUEUE) return // guard against unbounded growth
 
     queue.push(full)

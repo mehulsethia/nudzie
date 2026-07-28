@@ -132,6 +132,10 @@ export type Schedule = {
   day?: number // yearly: 1-31 (clamped)
   // interval: repeat every N minutes within an active hour window (local time)
   everyMinutes?: number
+  // interval: minute-of-the-hour the cadence is anchored to (0-59, default 0).
+  // Slots run from local midnight + atMinute, so e.g. every 60 min at :15 fires
+  // at 10:15, 11:15, … regardless of when the app was launched.
+  atMinute?: number
   activeStartHour?: number // 0-23
   activeEndHour?: number // 0-23
 }
