@@ -74,6 +74,17 @@ footer a{color:var(--grape-deep);text-decoration:none;margin-right:16px;font-fam
 <div class="callout">In plain terms: information from Google is used <b>only</b> to show your reminders inside Nudzie, on your device. It is never sold, never used for advertising, never transferred to others except as needed to provide this feature, and is never read by humans.</div>
 <p>The read-only access token that authorizes this is stored <b>only on your device</b> (see "Where things are stored"). You can disconnect at any time in Settings → Calendars, which removes the stored token, or revoke access from your <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">Google Account permissions</a>.</p>
 
+<h2>Data sharing &amp; disclosure</h2>
+<p><b>The short version.</b> Nudzie does <b>not</b> share, transfer, sell, or disclose your Google user data to anyone. Not to third parties, not to partners, and <b>not to Nudzie's own servers</b> - because there are none. The calendar data read through <code>calendar.events.readonly</code> travels <b>directly from Google to your device</b> and is never transmitted to us.</p>
+<p>These are the only parties involved in Nudzie's data flows, and this is exactly what each one does and does not receive:</p>
+<ul>
+  <li><b>Google</b> - the source of your calendar event data. Your device talks to Google directly, read-only, over the <code>calendar.events.readonly</code> scope. Nothing sits in between: no Nudzie proxy, no relay, no intermediate service.</li>
+  <li><b>Dodo Payments</b> - receives <b>payment and checkout information only</b> (such as your email address and payment details) when you buy a Pro license. <b>Dodo Payments never receives any Google Calendar data.</b> Payment processing and calendar reading are entirely separate systems that never touch each other: buying a license does not involve your calendar, and reading your calendar does not involve Dodo.</li>
+  <li><b>No one else.</b> <b>No advertisers, no data brokers, no analytics providers, no AI or machine-learning training, and no other third party receives any Google user data from Nudzie</b> - not in identified form, not in aggregate, not in anonymized form. Nudzie has no analytics and no telemetry at all.</li>
+</ul>
+<p><b>Nudzie has no backend server that stores or processes Google user data.</b> There is no Nudzie database, no account system, no cloud sync, and no logging of your events on our side. This is not a policy we could quietly change - it is how the app is built. Nudzie is local-first: your calendar data is fetched by the app on your computer, held in memory only, and never leaves your device.</p>
+<p>The only exceptions would be ones the law leaves us no choice about - and since we hold no Google user data at all, there is nothing for us to hand over.</p>
+
 <h2>Where things are stored</h2>
 <p>Everything Nudzie saves is stored locally in your operating system's per-user application-data folder. Nothing is uploaded. This includes:</p>
 <ul>
