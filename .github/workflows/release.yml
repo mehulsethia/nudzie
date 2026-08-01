@@ -98,6 +98,51 @@ jobs:
       # Tag pushes always publish. Manual (workflow_dispatch) runs publish only
       # when the `publish` input is checked; otherwise they build + sign +
       # notarize WITHOUT releasing, so signing can be validated safely.
+      - name: Remove existing release assets for rerun
+        if: github.event_name == 'push' || inputs.publish
+        uses: actions/github-script@v7
+        env:
+          PLATFORM: ${{ matrix.platform }}
+        with:
+          github-token: ${{ secrets.RELEASE_TOKEN }}
+          script: |
+            const owner = 'mehulsethia'
+            const repo = 'nudzie-releases'
+            const tag = context.ref.replace('refs/tags/', '')
+            const namesByPlatform = {
+              mac: new Set([
+                'Nudzie.dmg',
+                'Nudzie.dmg.blockmap',
+                'Nudzie.zip',
+                'Nudzie.zip.blockmap',
+                'latest-mac.yml',
+              ]),
+              win: new Set([
+                'Nudzie-Setup.exe',
+                'Nudzie-Setup.exe.blockmap',
+                'latest.yml',
+              ]),
+            }
+            const names = namesByPlatform[process.env.PLATFORM]
+            if (!names) throw new Error(`Unknown platform: ${process.env.PLATFORM}`)
+
+            let release
+            try {
+              release = await github.rest.repos.getReleaseByTag({ owner, repo, tag })
+            } catch (error) {
+              if (error.status === 404) {
+                core.info(`No existing ${tag} release in ${owner}/${repo}; nothing to delete.`)
+                return
+              }
+              throw error
+            }
+
+            for (const asset of release.data.assets) {
+              if (!names.has(asset.name)) continue
+              core.info(`Deleting existing ${asset.name} from ${tag}`)
+              await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id })
+            }
+
       - name: Build & publish (${{ matrix.platform }})
         run: npm run dist:${{ matrix.platform }} -- --publish ${{ (github.event_name == 'push' || inputs.publish) && 'always' || 'never' }}
         env:
