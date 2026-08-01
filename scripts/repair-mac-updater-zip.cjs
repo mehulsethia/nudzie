@@ -1,6 +1,6 @@
 const { execFileSync } = require('node:child_process')
 const { createHash } = require('node:crypto')
-const { existsSync, mkdtempSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } = require('node:fs')
+const { existsSync, mkdtempSync, readFileSync, renameSync, rmSync, statSync, symlinkSync, writeFileSync } = require('node:fs')
 const { tmpdir } = require('node:os')
 const { basename, join } = require('node:path')
 const { appBuilderPath } = require('app-builder-bin')
@@ -10,6 +10,7 @@ const appPath = join(distDir, 'mac-universal', 'Nudzie.app')
 const zipPath = join(distDir, 'Nudzie.zip')
 const zipBlockmapPath = join(distDir, 'Nudzie.zip.blockmap')
 const dmgPath = join(distDir, 'Nudzie.dmg')
+const dmgBlockmapPath = join(distDir, 'Nudzie.dmg.blockmap')
 const latestMacPath = join(distDir, 'latest-mac.yml')
 
 function run(command, args, options = {}) {
@@ -58,6 +59,42 @@ function rebuildZip() {
   run('/usr/bin/ditto', ['-c', '-k', '--sequesterRsrc', '--keepParent', appPath, tmpZip])
   renameSync(tmpZip, zipPath)
   run(appBuilderPath, ['blockmap', '--input', zipPath, '--output', zipBlockmapPath])
+}
+
+function rebuildDmg() {
+  if (!existsSync(dmgPath)) return
+
+  const version = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8')).version
+  const stagingDir = mkdtempSync('/tmp/nudzie-dmg-stage-')
+  const tmpDmg = join(distDir, 'Nudzie.dmg.tmp')
+
+  try {
+    run('/usr/bin/ditto', [appPath, join(stagingDir, 'Nudzie.app')])
+    symlinkSync('/Applications', join(stagingDir, 'Applications'))
+    rmSync(tmpDmg, { force: true })
+    try {
+      run('/usr/bin/hdiutil', [
+        'create',
+        '-volname',
+        `Nudzie ${version}`,
+        '-srcfolder',
+        stagingDir,
+        '-ov',
+        '-format',
+        'UDZO',
+        tmpDmg,
+      ])
+    } catch (error) {
+      if (process.env.CI === 'true') throw error
+      console.warn(`[repair-mac] Warning: failed to rebuild ${dmgPath}; CI will treat this as a release-blocking error.`)
+      return
+    }
+    renameSync(tmpDmg, dmgPath)
+    run(appBuilderPath, ['blockmap', '--input', dmgPath, '--output', dmgBlockmapPath])
+  } finally {
+    rmSync(tmpDmg, { force: true })
+    rmSync(stagingDir, { force: true, recursive: true })
+  }
 }
 
 function writeLatestMac() {
@@ -126,6 +163,8 @@ console.log('[repair-mac] Removing legacy CodeResources from packaged app')
 repairApp()
 console.log('[repair-mac] Rebuilding updater ZIP and blockmap')
 rebuildZip()
+console.log('[repair-mac] Rebuilding DMG and blockmap')
+rebuildDmg()
 writeLatestMac()
 console.log(`[repair-mac] Verifying repaired ${basename(zipPath)}`)
 verifyZip()
