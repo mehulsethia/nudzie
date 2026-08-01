@@ -1,6 +1,6 @@
 name: Build & release installers
 
-# Builds the macOS .dmg and Windows .exe and publishes them to the public
+# Builds the macOS .dmg/.zip and publishes them to the public
 # `nudzie-releases` repo. Trigger by pushing a version tag, e.g.:
 #   git tag v0.1.0 && git push origin v0.1.0
 # Requires a repo secret RELEASE_TOKEN: a fine-grained PAT with
@@ -28,8 +28,6 @@ jobs:
         include:
           - os: macos-15
             platform: mac
-          - os: windows-latest
-            platform: win
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
@@ -182,13 +180,6 @@ jobs:
               dist/Nudzie.zip \
               dist/Nudzie.zip.blockmap \
               dist/latest-mac.yml \
-              --repo mehulsethia/nudzie-releases \
-              --clobber
-          elif [ "$PLATFORM" = "win" ]; then
-            gh release upload "$TAG" \
-              dist/Nudzie-Setup.exe \
-              dist/Nudzie-Setup.exe.blockmap \
-              dist/latest.yml \
               --repo mehulsethia/nudzie-releases \
               --clobber
           else
