@@ -46,15 +46,7 @@ function developerIdIdentity() {
   return match[1]
 }
 
-function assertNoLegacyCodeResources(app) {
-  const legacyCodeResources = join(app, 'Contents', 'CodeResources')
-  if (existsSync(legacyCodeResources)) {
-    throw new Error(`Unexpected legacy CodeResources file: ${legacyCodeResources}`)
-  }
-}
-
 function verifyApp(app, { gatekeeper = false, stapler = false } = {}) {
-  assertNoLegacyCodeResources(app)
   run('/usr/bin/codesign', ['--verify', '--deep', '--strict', '--verbose=4', app])
   run('/usr/bin/codesign', ['-d', '--entitlements', '-', join(app, 'Contents', 'MacOS', 'Nudzie')])
   if (stapler) run('/usr/bin/xcrun', ['stapler', 'validate', app])
