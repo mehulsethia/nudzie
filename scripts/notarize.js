@@ -13,7 +13,7 @@
 // See .env.example and NOTARIZATION_SETUP.md for where to get each value.
 
 const { execFileSync, spawnSync } = require('node:child_process')
-const { existsSync } = require('node:fs')
+const { existsSync, rmSync } = require('node:fs')
 const { join } = require('node:path')
 
 function run(command, args) {
@@ -56,6 +56,12 @@ function verifyEntitlements(appPath) {
   }
 }
 
+function removeLegacyCodeResources(appPath) {
+  // Legacy/stale resource envelopes at Contents/CodeResources can make the
+  // downloaded app fail Electron's runtime signature check on macOS.
+  rmSync(join(appPath, 'Contents', 'CodeResources'), { force: true })
+}
+
 // electron-builder v25 ships as ESM for hooks; use a dynamic import so this file
 // works whether it's loaded as CJS or ESM.
 exports.default = async function notarizing(context) {
@@ -92,6 +98,7 @@ exports.default = async function notarizing(context) {
   if (existsSync(entitlements)) signArgs.push('--entitlements', entitlements)
   signArgs.push(appPath)
 
+  removeLegacyCodeResources(appPath)
   const signatureKind = hasNotarizationCredentials ? `Developer ID identity: ${identity}` : 'ad-hoc identity'
   console.log(`\n[notarize] Re-signing ${appPath} with ${signatureKind}`)
   run('/usr/bin/codesign', signArgs)

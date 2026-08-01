@@ -19,6 +19,10 @@ async function findApp(root) {
 
 function verifyApp(appPath, { gatekeeper = false } = {}) {
   console.log(`[verify-mac] Verifying ${appPath}`)
+  const legacyCodeResources = join(appPath, 'Contents', 'CodeResources')
+  if (existsSync(legacyCodeResources)) {
+    throw new Error(`Unexpected legacy CodeResources file: ${legacyCodeResources}`)
+  }
   run('/usr/bin/codesign', ['--verify', '--deep', '--strict', '--verbose=4', appPath])
   const entitlements = run(
     '/usr/bin/codesign',
