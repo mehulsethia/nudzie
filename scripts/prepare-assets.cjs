@@ -29,6 +29,17 @@ const OUT_DIR = path.join(ROOT, 'src', 'renderer', 'overlay', 'characters', CHAR
 // How close a pixel must be to the corner colour to count as background.
 const TOLERANCE = 72
 
+// Some generated source art uses a pale-blue gradient instead of the flat
+// background the original pipeline expected. Treat only clearly blue-tinted,
+// high-lightness pixels as background; bundled art with matching shoe colours
+// gets a small pose-specific repair below.
+function isPaleBlueBackground(r, g, b) {
+  return (
+    (r > 178 && g > 188 && b > 202 && b >= g + 2 && g >= r - 8 && b >= r + 12) ||
+    (r > 205 && g > 212 && b > 225 && b >= r + 8)
+  )
+}
+
 function removeBackground(image, tolerance) {
   const { width, height, data } = image.bitmap
 
@@ -74,7 +85,9 @@ function removeBackground(image, tolerance) {
     const dr = data[i] - br
     const dg = data[i + 1] - bg
     const db = data[i + 2] - bb
-    if (dr * dr + dg * dg + db * db > tol2) continue // hit the character
+    if (dr * dr + dg * dg + db * db > tol2 && !isPaleBlueBackground(data[i], data[i + 1], data[i + 2])) {
+      continue // hit the character
+    }
 
     data[i + 3] = 0 // make transparent
 
@@ -112,6 +125,147 @@ function removeBackground(image, tolerance) {
         const clamped = Math.max(0, Math.min(255, a))
         if (clamped < data[i + 3]) data[i + 3] = clamped
       }
+    }
+  }
+
+  return image
+}
+
+/**
+ * Removes trapped pale-blue background islands left inside a silhouette, e.g.
+ * the gap between trouser legs. This runs after the exterior flood-fill and is
+ * intentionally conservative so light shoe/body highlights are not removed.
+ */
+function removeEnclosedBackgroundArtifacts(image, alphaThreshold = 20) {
+  const { width, height, data } = image.bitmap
+  const n = width * height
+  const label = new Int32Array(n).fill(-1)
+  const stack = []
+
+  const isArtifactPixel = (p) => {
+    const i = p * 4
+    const r = data[i]
+    const g = data[i + 1]
+    const b = data[i + 2]
+    return data[i + 3] > alphaThreshold && r > 185 && g > 195 && b > 205 && b >= r + 12 && g >= r - 2
+  }
+
+  let cur = 0
+  for (let s = 0; s < n; s++) {
+    if (label[s] !== -1) continue
+    if (!isArtifactPixel(s)) {
+      label[s] = -2
+      continue
+    }
+
+    const myLabel = cur++
+    let size = 0
+    let minX = width
+    let minY = height
+    let maxX = -1
+    let maxY = -1
+    stack.length = 0
+    stack.push(s)
+    label[s] = myLabel
+
+    while (stack.length) {
+      const p = stack.pop()
+      size++
+      const x = p % width
+      const y = (p - x) / width
+      if (x < minX) minX = x
+      if (x > maxX) maxX = x
+      if (y < minY) minY = y
+      if (y > maxY) maxY = y
+
+      const neigh = []
+      if (x + 1 < width) neigh.push(p + 1)
+      if (x - 1 >= 0) neigh.push(p - 1)
+      if (y + 1 < height) neigh.push(p + width)
+      if (y - 1 >= 0) neigh.push(p - width)
+      for (const q of neigh) {
+        if (label[q] !== -1) continue
+        if (!isArtifactPixel(q)) {
+          label[q] = -2
+          continue
+        }
+        label[q] = myLabel
+        stack.push(q)
+      }
+    }
+
+    const cx = (minX + maxX) / 2 / width
+    const cy = (minY + maxY) / 2 / height
+    const tall = maxY - minY > height * 0.08
+    const central = cx > 0.35 && cx < 0.65 && cy > 0.55 && cy < 0.9
+    const largeEnough = size > 500
+    if (largeEnough && tall && central) {
+      for (let p = 0; p < n; p++) {
+        const y = Math.floor(p / width)
+        const x = p % width
+        const inLegGap = x > width * 0.455 && x < width * 0.62 && y < height * 0.875
+        if (label[p] === myLabel && inLegGap) data[p * 4 + 3] = 0
+      }
+    }
+  }
+
+  return image
+}
+
+function insidePolygon(x, y, points) {
+  let inside = false
+  for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+    const xi = points[i][0]
+    const yi = points[i][1]
+    const xj = points[j][0]
+    const yj = points[j][1]
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) {
+      inside = !inside
+    }
+  }
+  return inside
+}
+
+/**
+ * The androgynous idle art's left shoe uses almost the same pale-blue whites as
+ * the gradient background, so the exterior flood-fill can consume it. Restore
+ * only the original shoe whites/neutrals/dark outline inside the shoe shape.
+ */
+function restoreAndrogynousIdleShoe(image, source) {
+  if (image.bitmap.width !== 551 || image.bitmap.height !== 1447) return image
+  if (source.bitmap.width !== 2816 || source.bitmap.height !== 1536) return image
+
+  const src = source.clone().crop(1133, 77, 551, 1447)
+  const { width, height, data } = image.bitmap
+  const sourceData = src.bitmap.data
+  const shoePolygon = [
+    [70, 1328],
+    [92, 1292],
+    [140, 1265],
+    [224, 1276],
+    [252, 1324],
+    [224, 1368],
+    [145, 1384],
+    [80, 1360]
+  ]
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (!insidePolygon(x, y, shoePolygon)) continue
+      const i = (y * width + x) * 4
+      const r = sourceData[i]
+      const g = sourceData[i + 1]
+      const b = sourceData[i + 2]
+      const spread = Math.max(r, g, b) - Math.min(r, g, b)
+      const shoeLike =
+        (r > 215 && g > 215 && b > 220 && spread < 35) ||
+        (r < 90 && g < 100 && b < 130) ||
+        (r > 130 && g > 130 && b > 135 && r < 215 && g < 220 && b < 230 && spread < 24)
+      if (!shoeLike) continue
+      data[i] = r
+      data[i + 1] = g
+      data[i + 2] = b
+      data[i + 3] = sourceData[i + 3]
     }
   }
 
@@ -207,10 +361,13 @@ async function processPose(name) {
   }
   const out = path.join(OUT_DIR, `${name}.png`)
   console.log(`  - ${name}.png ...`)
-  const image = await Jimp.read(src)
+  const source = await Jimp.read(src)
+  let image = source.clone()
   removeBackground(image, TOLERANCE)
   keepLargestComponent(image)
-  cropToContent(image)
+  image = cropToContent(image)
+  removeEnclosedBackgroundArtifacts(image)
+  if (CHARACTER === 'androgynous' && name === 'idle') restoreAndrogynousIdleShoe(image, source)
   await image.writeAsync(out)
   return image
 }

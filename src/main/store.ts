@@ -38,9 +38,12 @@ export type Prefs = {
   templatesSeeded: boolean
 }
 
+const DEFAULT_MESSAGE_TEMPLATE = 'Call with {title} in {minutes} minutes'
+const LEGACY_DEFAULT_MESSAGE_TEMPLATE = '{title} in {minutes} minutes'
+
 const DEFAULT_PREFS: Prefs = {
   leadMinutes: 5,
-  messageTemplate: '{title} in {minutes} minutes',
+  messageTemplate: DEFAULT_MESSAGE_TEMPLATE,
   remindAtStart: false,
 
   intervalEnabled: true,
@@ -98,7 +101,13 @@ export function getPrefs(): Prefs {
   try {
     if (existsSync(prefsPath())) {
       const raw = JSON.parse(readFileSync(prefsPath(), 'utf8'))
-      cache = { ...DEFAULT_PREFS, ...raw }
+      const next: Prefs = { ...DEFAULT_PREFS, ...raw }
+      // v0.1.5 shipped the starter template without "Call with"; migrate only
+      // that exact untouched default so existing installs show the intended copy.
+      if (next.messageTemplate === LEGACY_DEFAULT_MESSAGE_TEMPLATE) {
+        next.messageTemplate = DEFAULT_MESSAGE_TEMPLATE
+      }
+      cache = next
     } else {
       cache = { ...DEFAULT_PREFS }
     }
