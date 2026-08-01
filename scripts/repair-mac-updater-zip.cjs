@@ -88,15 +88,10 @@ async function signAndNotarizeApp() {
     teamId: process.env.APPLE_TEAM_ID,
   })
 
-  console.log('[repair-mac] Stapling repaired app notarization ticket')
-  run('/usr/bin/xcrun', ['stapler', 'staple', appPath])
-  run('/usr/bin/xcrun', ['stapler', 'validate', appPath])
-
   // Electron validates the running bundle with SecCodeCheckValidity. On recent
   // macOS builds, the stapled app-level ticket at Contents/CodeResources can
-  // trip that runtime check after ZIP/DMG packaging even though Gatekeeper
-  // accepts the app. Validate the ticket above, then ship the notarized app
-  // without that extra file; Gatekeeper still accepts it by notarization lookup.
+  // trip that runtime check after ZIP/DMG packaging. Keep the app notarized but
+  // do not staple the .app itself; Gatekeeper accepts it by notarization lookup.
   rmSync(stapledAppTicketPath, { force: true })
 }
 
