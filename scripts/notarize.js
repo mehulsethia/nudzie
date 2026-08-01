@@ -12,10 +12,36 @@
 //   APPLE_APP_SPECIFIC_PASSWORD -> app-specific password from appleid.apple.com
 // See .env.example and NOTARIZATION_SETUP.md for where to get each value.
 
+const { execFileSync } = require('node:child_process')
+const { existsSync } = require('node:fs')
+const { join } = require('node:path')
+
+function run(command, args) {
+  execFileSync(command, args, { stdio: 'inherit' })
+}
+
+function developerIdIdentity() {
+  if (process.env.CSC_NAME) return process.env.CSC_NAME
+
+  const output = execFileSync('/usr/bin/security', ['find-identity', '-v', '-p', 'codesigning'], {
+    encoding: 'utf8'
+  })
+  const match = output.match(/"([^"]*Developer ID Application:[^"]+)"/)
+  if (!match) {
+    throw new Error('Could not find a Developer ID Application signing identity in the keychain.')
+  }
+  return match[1]
+}
+
+function verifySignedApp(appPath, { gatekeeper = false } = {}) {
+  run('/usr/bin/codesign', ['--verify', '--deep', '--strict', '--verbose=4', appPath])
+  if (gatekeeper) run('/usr/sbin/spctl', ['-a', '-vv', '-t', 'execute', appPath])
+}
+
 // electron-builder v25 ships as ESM for hooks; use a dynamic import so this file
 // works whether it's loaded as CJS or ESM.
 exports.default = async function notarizing(context) {
-  const { electronPlatformName, appOutDir } = context
+  const { electronPlatformName, appOutDir, packager } = context
 
   // Only notarize macOS builds.
   if (electronPlatformName !== 'darwin') {
@@ -45,6 +71,24 @@ exports.default = async function notarizing(context) {
 
   const appName = context.packager.appInfo.productFilename
   const appPath = `${appOutDir}/${appName}.app`
+  const identity = developerIdIdentity()
+  const entitlements = join(packager.projectDir, 'build', 'entitlements.mac.plist')
+  const signArgs = [
+    '--force',
+    '--deep',
+    '--sign',
+    identity,
+    '--timestamp',
+    '--options',
+    'runtime'
+  ]
+  if (existsSync(entitlements)) signArgs.push('--entitlements', entitlements)
+  signArgs.push(appPath)
+
+  console.log(`\n[notarize] Re-signing ${appPath} with Developer ID identity: ${identity}`)
+  run('/usr/bin/codesign', signArgs)
+  console.log('[notarize] Verifying Developer ID signature before submission.')
+  verifySignedApp(appPath)
 
   console.log(`\n[notarize] Submitting ${appPath} to Apple notary service…`)
   console.log('[notarize] This can take several minutes.')
@@ -62,5 +106,8 @@ exports.default = async function notarizing(context) {
     teamId,
   })
 
-  console.log(`[notarize] Done — ${appName}.app is notarized.\n`)
+  console.log('[notarize] Verifying notarized app and stapled ticket.')
+  run('/usr/bin/xcrun', ['stapler', 'validate', appPath])
+  verifySignedApp(appPath, { gatekeeper: true })
+  console.log(`[notarize] Done — ${appName}.app is signed, verified, and notarized.\n`)
 }
