@@ -19,12 +19,6 @@ const zipPath = join(distDir, 'Nudzie.zip')
 const dmgPath = join(distDir, 'Nudzie.dmg')
 const latestMacPath = join(distDir, 'latest-mac.yml')
 
-// Only meaningful when the build was signed with a real Developer ID. Local
-// unsigned builds skip the Apple-side assertions instead of failing.
-const signed = Boolean(
-  process.env.APPLE_ID && process.env.APPLE_TEAM_ID && process.env.APPLE_APP_SPECIFIC_PASSWORD
-)
-
 const failures = []
 
 function capture(command, args) {
@@ -58,17 +52,25 @@ function auditApp(appPath, context) {
     if (!/flags=.*runtime/.test(output)) throw new Error('CodeDirectory is missing the runtime flag')
   })
 
-  if (!signed) {
-    console.log('  skip  Developer ID / notarization checks (no Apple credentials in env)')
+  // Derived from the artifact, never from ambient env vars. Gating the Apple-side
+  // assertions on APPLE_* being present meant a missing or misplaced secret
+  // silently downgraded this audit to almost nothing — which is exactly how the
+  // stapling regression shipped 13 times. A Developer ID signature is proof the
+  // build intended to be a release build, so demand the rest of the chain.
+  const isDeveloperIdSigned = /Authority=Developer ID Application:/.test(
+    capture('/usr/bin/codesign', ['-dvv', appPath]).output
+  )
+
+  if (!isDeveloperIdSigned) {
+    if (process.env.CI === 'true') {
+      failures.push(`${context}: CI build is not signed with a Developer ID Application identity`)
+      console.log('  FAIL  signed by a Developer ID Application certificate: ad-hoc/unsigned build in CI')
+      return
+    }
+    console.log('  skip  Developer ID / notarization checks (local unsigned build)')
     return
   }
-
-  check('signed by a Developer ID Application certificate', () => {
-    const { output } = capture('/usr/bin/codesign', ['-dvv', appPath])
-    if (!/Authority=Developer ID Application:/.test(output)) {
-      throw new Error('not signed with a Developer ID Application identity')
-    }
-  })
+  console.log('  ok    signed by a Developer ID Application certificate')
 
   check('carries a secure timestamp', () => {
     const { output } = capture('/usr/bin/codesign', ['-dvv', appPath])
@@ -156,7 +158,7 @@ function auditUpdateFeed() {
 }
 
 console.log(`[audit] auditing macOS artifacts in ${distDir}`)
-console.log(`[audit] Apple credentials present: ${signed ? 'yes' : 'no'}`)
+
 
 auditZip()
 auditDmg()
