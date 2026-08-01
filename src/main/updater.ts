@@ -29,6 +29,7 @@ export function initAutoUpdate(): void {
 
     autoUpdater.autoDownload = true
     autoUpdater.autoInstallOnAppQuit = true
+    autoUpdater.autoRunAppAfterInstall = true
 
     autoUpdater.on('update-downloaded', (info) => {
       const buttons = FORCE_UPDATE ? ['Restart now'] : ['Restart now', 'Later']
@@ -45,7 +46,11 @@ export function initAutoUpdate(): void {
             : 'A new version has been downloaded. Restart Nudzie to update - or it will update next time you quit.'
         })
         .then((r) => {
-          if (FORCE_UPDATE || r.response === 0) autoUpdater.quitAndInstall()
+          if (FORCE_UPDATE || r.response === 0) {
+            log.info('[autoUpdater] user accepted restart; calling quitAndInstall')
+            ;(app as unknown as { isQuiting?: boolean }).isQuiting = true
+            autoUpdater.quitAndInstall(false, true)
+          }
         })
     })
 

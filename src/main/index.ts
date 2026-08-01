@@ -1,4 +1,4 @@
-import { app } from 'electron'
+import { app, autoUpdater as nativeAutoUpdater } from 'electron'
 import log from 'electron-log'
 import { createOverlayWindow } from './windows/overlay'
 import { openSettings } from './windows/settings'
@@ -101,8 +101,18 @@ app.on('window-all-closed', () => {
   // Intentionally do nothing - the app lives in the tray / menu bar.
 })
 
-// Let the overlay's close handler know a real quit is underway (so it stops
-// intercepting close → hide and actually lets the app exit).
-app.on('before-quit', () => {
+function markAppQuitting(): void {
   ;(app as unknown as { isQuiting?: boolean }).isQuiting = true
+}
+
+// Let the overlay's close handler know a real quit is underway (so it stops
+// intercepting close -> hide and actually lets the app exit).
+app.on('before-quit', markAppQuitting)
+
+// autoUpdater.quitAndInstall() closes windows before the normal before-quit
+// event. Mark this earlier or the overlay close handler can hide the window and
+// keep the app alive instead of letting the updater restart it.
+nativeAutoUpdater.on('before-quit-for-update', () => {
+  log.info('[autoUpdater] before-quit-for-update')
+  markAppQuitting()
 })
