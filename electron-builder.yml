@@ -15,6 +15,11 @@ afterPack: scripts/ad-hoc-sign-mac.cjs
 # electron-builder's built-in notarizer so this hook is the single source of truth.
 afterSign: scripts/notarize.js
 
+# Final gate before publish: verify the packaged macOS app and ZIP contents users
+# will receive. This catches any post-sign mutation before auto-update artifacts
+# are uploaded.
+afterAllArtifactBuild: scripts/verify-mac-release-artifacts.cjs
+
 files:
   - out/**/*
   - package.json
