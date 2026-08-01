@@ -153,6 +153,14 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
 
+      - name: Repair & verify mac updater ZIP
+        if: matrix.platform == 'mac'
+        run: node scripts/repair-mac-updater-zip.cjs
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+
       - name: Upload verified release assets (${{ matrix.platform }})
         if: github.event_name == 'push' || inputs.publish
         shell: bash
