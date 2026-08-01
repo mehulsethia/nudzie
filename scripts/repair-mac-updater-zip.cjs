@@ -1,8 +1,8 @@
 const { execFileSync } = require('node:child_process')
 const { createHash } = require('node:crypto')
-const { existsSync, mkdtempSync, readFileSync, renameSync, rmSync, statSync, symlinkSync, writeFileSync } = require('node:fs')
+const { copyFileSync, existsSync, mkdtempSync, readFileSync, renameSync, rmSync, statSync, symlinkSync, writeFileSync } = require('node:fs')
 const { tmpdir } = require('node:os')
-const { basename, join } = require('node:path')
+const { basename, dirname, join } = require('node:path')
 const { appBuilderPath } = require('app-builder-bin')
 
 const distDir = join(process.cwd(), 'dist')
@@ -15,6 +15,10 @@ const latestMacPath = join(distDir, 'latest-mac.yml')
 
 function run(command, args, options = {}) {
   return execFileSync(command, args, { encoding: 'utf8', stdio: options.capture ? 'pipe' : 'inherit' })
+}
+
+function sleep(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
 }
 
 function sha512(filePath) {
@@ -108,14 +112,14 @@ function rebuildDmg() {
 
   const version = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8')).version
   const stagingDir = mkdtempSync('/tmp/nudzie-dmg-stage-')
-  const tmpDmg = join(distDir, 'Nudzie.tmp.dmg')
+  const tmpDmg = join(mkdtempSync('/tmp/nudzie-dmg-output-'), 'Nudzie.dmg')
 
   try {
     run('/usr/bin/ditto', [appPath, join(stagingDir, 'Nudzie.app')])
     symlinkSync('/Applications', join(stagingDir, 'Applications'))
     rmSync(tmpDmg, { force: true })
     try {
-      run('/usr/bin/hdiutil', [
+      const args = [
         'create',
         '-volname',
         `Nudzie ${version}`,
@@ -125,16 +129,27 @@ function rebuildDmg() {
         '-format',
         'UDZO',
         tmpDmg,
-      ])
+      ]
+      for (let attempt = 1; attempt <= 4; attempt += 1) {
+        try {
+          run('/usr/bin/hdiutil', args)
+          break
+        } catch (error) {
+          if (attempt === 4) throw error
+          console.warn(`[repair-mac] hdiutil create failed on attempt ${attempt}; retrying.`)
+          sleep(5000)
+        }
+      }
     } catch (error) {
       if (process.env.CI === 'true') throw error
       console.warn(`[repair-mac] Warning: failed to rebuild ${dmgPath}; CI will treat this as a release-blocking error.`)
       return
     }
-    renameSync(tmpDmg, dmgPath)
+    copyFileSync(tmpDmg, dmgPath)
     run(appBuilderPath, ['blockmap', '--input', dmgPath, '--output', dmgBlockmapPath])
   } finally {
     rmSync(tmpDmg, { force: true })
+    rmSync(dirname(tmpDmg), { force: true, recursive: true })
     rmSync(stagingDir, { force: true, recursive: true })
   }
 }
