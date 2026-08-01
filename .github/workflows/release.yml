@@ -141,48 +141,26 @@ jobs:
               await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id })
             }
 
-      - name: Build & verify (${{ matrix.platform }})
-        run: npm run dist:${{ matrix.platform }} -- --publish never
+      # electron-builder owns the whole pipeline: sign -> notarize -> staple
+      # (scripts/notarize.js afterSign hook) -> package dmg/zip -> generate
+      # latest-mac.yml -> upload to nudzie-releases. Do NOT post-process the
+      # packaged .app afterwards: re-signing or stripping the stapled ticket at
+      # Contents/CodeResources is what broke v0.1.7-v0.1.19.
+      - name: Build & publish (${{ matrix.platform }})
+        run: npm run dist:${{ matrix.platform }} -- --publish ${{ (github.event_name == 'push' || inputs.publish) && 'always' || 'never' }}
         env:
+          # Publish target is the public releases repo (see electron-builder.yml).
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           # macOS signing/notarization — consumed by electron-builder + notarize.js
           # on the mac job. The Developer ID cert is auto-discovered from the
-          # keychain imported in the step above. The Windows build ignores these.
+          # keychain imported in the step above.
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
 
-      - name: Repair & verify mac updater ZIP
+      # Independent audit of what was actually packaged, against the DMG and the
+      # updater ZIP rather than the staging app. Catches a missing staple, a lost
+      # signature, or a broken Designated Requirement.
+      - name: Audit packaged mac artifacts
         if: matrix.platform == 'mac'
-        run: node scripts/repair-mac-updater-zip.cjs
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-
-      - name: Upload verified release assets (${{ matrix.platform }})
-        if: github.event_name == 'push' || inputs.publish
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-          PLATFORM: ${{ matrix.platform }}
-          TAG: ${{ github.ref_name }}
-        run: |
-          set -euo pipefail
-          if ! gh release view "$TAG" --repo mehulsethia/nudzie-releases >/dev/null 2>&1; then
-            gh release create "$TAG" --repo mehulsethia/nudzie-releases --title "$TAG" --notes "" ||
-              gh release view "$TAG" --repo mehulsethia/nudzie-releases >/dev/null
-          fi
-
-          if [ "$PLATFORM" = "mac" ]; then
-            gh release upload "$TAG" \
-              dist/Nudzie.dmg \
-              dist/Nudzie.dmg.blockmap \
-              dist/Nudzie.zip \
-              dist/Nudzie.zip.blockmap \
-              dist/latest-mac.yml \
-              --repo mehulsethia/nudzie-releases \
-              --clobber
-          else
-            echo "Unknown platform: $PLATFORM" >&2
-            exit 1
-          fi
+        run: node scripts/audit-mac-artifacts.cjs
