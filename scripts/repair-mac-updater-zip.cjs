@@ -12,6 +12,7 @@ const zipBlockmapPath = join(distDir, 'Nudzie.zip.blockmap')
 const dmgPath = join(distDir, 'Nudzie.dmg')
 const dmgBlockmapPath = join(distDir, 'Nudzie.dmg.blockmap')
 const latestMacPath = join(distDir, 'latest-mac.yml')
+const stapledAppTicketPath = join(appPath, 'Contents', 'CodeResources')
 
 function run(command, args, options = {}) {
   return execFileSync(command, args, { encoding: 'utf8', stdio: options.capture ? 'pipe' : 'inherit' })
@@ -89,20 +90,27 @@ async function signAndNotarizeApp() {
 
   console.log('[repair-mac] Stapling repaired app notarization ticket')
   run('/usr/bin/xcrun', ['stapler', 'staple', appPath])
+  run('/usr/bin/xcrun', ['stapler', 'validate', appPath])
+
+  // Electron validates the running bundle with SecCodeCheckValidity. On recent
+  // macOS builds, the stapled app-level ticket at Contents/CodeResources can
+  // trip that runtime check after ZIP/DMG packaging even though Gatekeeper
+  // accepts the app. Validate the ticket above, then ship the notarized app
+  // without that extra file; Gatekeeper still accepts it by notarization lookup.
+  rmSync(stapledAppTicketPath, { force: true })
 }
 
 async function repairApp() {
-  const legacyCodeResources = join(appPath, 'Contents', 'CodeResources')
-  rmSync(legacyCodeResources, { force: true })
+  rmSync(stapledAppTicketPath, { force: true })
   const hasCredentials = hasNotarizationCredentials()
   if (hasCredentials) await signAndNotarizeApp()
-  verifyApp(appPath, { gatekeeper: hasCredentials, stapler: hasCredentials })
+  verifyApp(appPath, { gatekeeper: hasCredentials })
 }
 
 function rebuildZip() {
   const tmpZip = join(distDir, 'Nudzie.zip.tmp')
   rmSync(tmpZip, { force: true })
-  run('/usr/bin/ditto', ['-c', '-k', '--sequesterRsrc', '--keepParent', appPath, tmpZip])
+  run('/usr/bin/ditto', ['-c', '-k', '--norsrc', '--keepParent', appPath, tmpZip])
   renameSync(tmpZip, zipPath)
   run(appBuilderPath, ['blockmap', '--input', zipPath, '--output', zipBlockmapPath])
 }
@@ -115,7 +123,7 @@ function rebuildDmg() {
   const tmpDmg = join(mkdtempSync('/tmp/nudzie-dmg-output-'), 'Nudzie.dmg')
 
   try {
-    run('/usr/bin/ditto', [appPath, join(stagingDir, 'Nudzie.app')])
+    run('/usr/bin/ditto', ['--norsrc', appPath, join(stagingDir, 'Nudzie.app')])
     symlinkSync('/Applications', join(stagingDir, 'Applications'))
     rmSync(tmpDmg, { force: true })
     try {
@@ -186,7 +194,7 @@ function verifyZip() {
   const extractDir = mkdtempSync(join(tmpdir(), 'nudzie-repaired-zip-'))
   run('/usr/bin/ditto', ['-x', '-k', zipPath, extractDir])
   const hasCredentials = hasNotarizationCredentials()
-  verifyApp(join(extractDir, 'Nudzie.app'), { gatekeeper: hasCredentials, stapler: hasCredentials })
+  verifyApp(join(extractDir, 'Nudzie.app'), { gatekeeper: hasCredentials })
 }
 
 function verifyDmg() {
@@ -204,7 +212,7 @@ function verifyDmg() {
     }
     attached = true
     const hasCredentials = hasNotarizationCredentials()
-    verifyApp(join(mountPoint, 'Nudzie.app'), { gatekeeper: hasCredentials, stapler: hasCredentials })
+    verifyApp(join(mountPoint, 'Nudzie.app'), { gatekeeper: hasCredentials })
   } finally {
     if (attached) {
       try {
