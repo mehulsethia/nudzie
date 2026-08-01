@@ -137,7 +137,8 @@ exports.default = async function notarizing(context) {
     teamId,
   })
 
-  console.log('[notarize] Verifying notarized app and stapled ticket.')
+  console.log('[notarize] Stapling and verifying notarized app ticket.')
+  run('/usr/bin/xcrun', ['stapler', 'staple', appPath])
   run('/usr/bin/xcrun', ['stapler', 'validate', appPath])
   verifySignedApp(appPath, { gatekeeper: true })
   verifyEntitlements(appPath)

@@ -33,6 +33,19 @@ function hasNotarizationCredentials() {
   )
 }
 
+function developerIdIdentity() {
+  if (process.env.CSC_NAME) return process.env.CSC_NAME
+
+  const output = execFileSync('/usr/bin/security', ['find-identity', '-v', '-p', 'codesigning'], {
+    encoding: 'utf8'
+  })
+  const match = output.match(/"([^"]*Developer ID Application:[^"]+)"/)
+  if (!match) {
+    throw new Error('Could not find a Developer ID Application signing identity in the keychain.')
+  }
+  return match[1]
+}
+
 function assertNoLegacyCodeResources(app) {
   const legacyCodeResources = join(app, 'Contents', 'CodeResources')
   if (existsSync(legacyCodeResources)) {
@@ -40,17 +53,54 @@ function assertNoLegacyCodeResources(app) {
   }
 }
 
-function verifyApp(app, { gatekeeper = false } = {}) {
+function verifyApp(app, { gatekeeper = false, stapler = false } = {}) {
   assertNoLegacyCodeResources(app)
   run('/usr/bin/codesign', ['--verify', '--deep', '--strict', '--verbose=4', app])
   run('/usr/bin/codesign', ['-d', '--entitlements', '-', join(app, 'Contents', 'MacOS', 'Nudzie')])
+  if (stapler) run('/usr/bin/xcrun', ['stapler', 'validate', app])
   if (gatekeeper) run('/usr/sbin/spctl', ['-a', '-vv', '-t', 'execute', app])
 }
 
-function repairApp() {
+async function signAndNotarizeApp() {
+  const identity = developerIdIdentity()
+  const entitlements = join(process.cwd(), 'build', 'entitlements.mac.plist')
+  const signArgs = [
+    '--force',
+    '--deep',
+    '--sign',
+    identity,
+    '--options',
+    'runtime',
+    '--generate-entitlement-der',
+    '--timestamp',
+  ]
+  if (existsSync(entitlements)) signArgs.push('--entitlements', entitlements)
+  signArgs.push(appPath)
+
+  console.log(`[repair-mac] Re-signing repaired app with ${identity}`)
+  run('/usr/bin/codesign', signArgs)
+  verifyApp(appPath)
+
+  console.log('[repair-mac] Submitting repaired app to Apple notary service')
+  const { notarize } = await import('@electron/notarize')
+  await notarize({
+    tool: 'notarytool',
+    appPath,
+    appleId: process.env.APPLE_ID,
+    appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD,
+    teamId: process.env.APPLE_TEAM_ID,
+  })
+
+  console.log('[repair-mac] Stapling repaired app notarization ticket')
+  run('/usr/bin/xcrun', ['stapler', 'staple', appPath])
+}
+
+async function repairApp() {
   const legacyCodeResources = join(appPath, 'Contents', 'CodeResources')
   rmSync(legacyCodeResources, { force: true })
-  verifyApp(appPath, { gatekeeper: hasNotarizationCredentials() })
+  const hasCredentials = hasNotarizationCredentials()
+  if (hasCredentials) await signAndNotarizeApp()
+  verifyApp(appPath, { gatekeeper: hasCredentials, stapler: hasCredentials })
 }
 
 function rebuildZip() {
@@ -128,7 +178,8 @@ function writeLatestMac() {
 function verifyZip() {
   const extractDir = mkdtempSync(join(tmpdir(), 'nudzie-repaired-zip-'))
   run('/usr/bin/ditto', ['-x', '-k', zipPath, extractDir])
-  verifyApp(join(extractDir, 'Nudzie.app'))
+  const hasCredentials = hasNotarizationCredentials()
+  verifyApp(join(extractDir, 'Nudzie.app'), { gatekeeper: hasCredentials, stapler: hasCredentials })
 }
 
 function verifyDmg() {
@@ -145,7 +196,8 @@ function verifyDmg() {
       return
     }
     attached = true
-    verifyApp(join(mountPoint, 'Nudzie.app'), { gatekeeper: hasNotarizationCredentials() })
+    const hasCredentials = hasNotarizationCredentials()
+    verifyApp(join(mountPoint, 'Nudzie.app'), { gatekeeper: hasCredentials, stapler: hasCredentials })
   } finally {
     if (attached) {
       try {
@@ -159,15 +211,22 @@ function verifyDmg() {
   }
 }
 
-console.log('[repair-mac] Removing legacy CodeResources from packaged app')
-repairApp()
-console.log('[repair-mac] Rebuilding updater ZIP and blockmap')
-rebuildZip()
-console.log('[repair-mac] Rebuilding DMG and blockmap')
-rebuildDmg()
-writeLatestMac()
-console.log(`[repair-mac] Verifying repaired ${basename(zipPath)}`)
-verifyZip()
-console.log('[repair-mac] Verifying DMG contents')
-verifyDmg()
-console.log('[repair-mac] mac release artifacts are repaired and verified')
+async function main() {
+  console.log('[repair-mac] Removing legacy CodeResources from packaged app')
+  await repairApp()
+  console.log('[repair-mac] Rebuilding updater ZIP and blockmap')
+  rebuildZip()
+  console.log('[repair-mac] Rebuilding DMG and blockmap')
+  rebuildDmg()
+  writeLatestMac()
+  console.log(`[repair-mac] Verifying repaired ${basename(zipPath)}`)
+  verifyZip()
+  console.log('[repair-mac] Verifying DMG contents')
+  verifyDmg()
+  console.log('[repair-mac] mac release artifacts are repaired and verified')
+}
+
+main().catch((error) => {
+  console.error(error)
+  process.exitCode = 1
+})
