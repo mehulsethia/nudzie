@@ -66,7 +66,7 @@ function rebuildDmg() {
 
   const version = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf8')).version
   const stagingDir = mkdtempSync('/tmp/nudzie-dmg-stage-')
-  const tmpDmg = join(distDir, 'Nudzie.dmg.tmp')
+  const tmpDmg = join(distDir, 'Nudzie.tmp.dmg')
 
   try {
     run('/usr/bin/ditto', [appPath, join(stagingDir, 'Nudzie.app')])
