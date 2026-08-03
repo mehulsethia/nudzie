@@ -6,7 +6,7 @@ import { createTray } from './tray'
 import { registerIpc } from './ipc'
 import { getPrefs, seedDefaultReminders } from './store'
 import { startScheduler, triggerTestReminder } from './scheduler'
-import { applyDockMode, applyAppIcon, setTrayAvailable } from './platform'
+import { applyDockMode, applyAppIcon, applyLaunchAtLogin, setTrayAvailable } from './platform'
 import { initAutoUpdate } from './updater'
 import * as calendar from './calendar'
 import * as license from './license'
@@ -47,14 +47,9 @@ app.whenReady().then(async () => {
 
   registerIpc()
 
-  // Honour the saved "launch at login" preference (only works once packaged).
-  if (app.isPackaged) {
-    try {
-      app.setLoginItemSettings({ openAtLogin: getPrefs().launchAtLogin })
-    } catch {
-      /* not permitted in some environments */
-    }
-  }
+  // Honour the saved "launch at login" preference (only works once packaged,
+  // and never in the Microsoft Store build - see applyLaunchAtLogin).
+  applyLaunchAtLogin(getPrefs().launchAtLogin)
 
   createOverlayWindow()
 

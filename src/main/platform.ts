@@ -13,6 +13,33 @@ export function setTrayAvailable(available: boolean): void {
 }
 
 /**
+ * True when running from the MSIX package installed via the Microsoft Store.
+ * Electron sets process.windowsStore for AppX-packaged builds. The Store build
+ * differs from the NSIS build in two ways it must respect (see
+ * applyLaunchAtLogin below and initAutoUpdate in updater.ts).
+ */
+export const isWindowsStore = process.platform === 'win32' && process.windowsStore === true
+
+/**
+ * Applies the "launch at login" preference. Only meaningful once packaged.
+ *
+ * MSIX ignores app.setLoginItemSettings entirely - a packaged app's startup
+ * entry comes from the `windows.startupTask` manifest extension (enabled via
+ * appx.addAutoLaunchExtension in electron-builder.yml), and only the user can
+ * toggle it, from Settings > Apps > Startup. Calling the Electron API there
+ * would do nothing while making the app look like it had worked, so the Store
+ * build skips it and the settings UI hides the checkbox instead.
+ */
+export function applyLaunchAtLogin(openAtLogin: boolean): void {
+  if (!app.isPackaged || isWindowsStore) return
+  try {
+    app.setLoginItemSettings({ openAtLogin })
+  } catch {
+    /* not permitted in some environments */
+  }
+}
+
+/**
  * Applies the "show in Dock" preference on macOS.
  *  - dockIcon = true  → a regular app: Dock icon + Cmd-Tab entry.
  *  - dockIcon = false → menu-bar-only ("accessory"): no Dock icon, no Cmd-Tab

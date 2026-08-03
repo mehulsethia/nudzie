@@ -45,6 +45,7 @@ contextBridge.exposeInMainWorld('nudzie', {
   upcoming: () => ipcRenderer.invoke('events:upcoming'),
   openExternal: (url: string) => ipcRenderer.invoke('open:external', url),
   appVersion: () => ipcRenderer.invoke('app:version'),
+  isWindowsStore: () => ipcRenderer.invoke('app:isWindowsStore'),
   testReminder: () => ipcRenderer.invoke('reminder:test'),
   remindNow: () => ipcRenderer.invoke('reminder:now'),
 

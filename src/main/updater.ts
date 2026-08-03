@@ -1,6 +1,7 @@
 import { app, dialog } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import log from 'electron-log'
+import { isWindowsStore } from './platform'
 
 const CHECK_INTERVAL = 6 * 60 * 60 * 1000
 
@@ -15,6 +16,15 @@ const FORCE_UPDATE = false
  */
 export function initAutoUpdate(): void {
   if (!app.isPackaged) return
+
+  // The Microsoft Store owns updates for the MSIX build. Left enabled, this
+  // would follow the GitHub feed and try to install Nudzie-Setup.exe over the
+  // top of the Store package - a second, unmanaged copy of the app, and grounds
+  // for failing Store certification. MSIX installs are read-only anyway.
+  if (isWindowsStore) {
+    log.info('[autoUpdater] Microsoft Store build; the Store handles updates')
+    return
+  }
 
   try {
     // Update problems used to be invisible: the error handler discarded

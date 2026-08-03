@@ -18,7 +18,7 @@ import * as google from './calendar/google'
 import * as calendar from './calendar'
 import * as license from './license'
 import { overlayDone } from './windows/overlay'
-import { applyDockMode, applyAppIcon } from './platform'
+import { applyDockMode, applyAppIcon, applyLaunchAtLogin, isWindowsStore } from './platform'
 import { refreshTrayIcon } from './tray'
 import { suppressSettingsActivation } from './activation'
 import {
@@ -46,17 +46,15 @@ export function registerIpc(): void {
   // Shown in the sidebar footer so a bug report can name the exact build.
   ipcMain.handle('app:version', () => app.getVersion())
 
+  // Lets the settings UI hide controls the Store sandbox doesn't allow the app
+  // to drive itself (currently just "Launch at login").
+  ipcMain.handle('app:isWindowsStore', () => isWindowsStore)
+
   ipcMain.handle('prefs:get', () => getPrefs())
 
   ipcMain.handle('prefs:set', (_e, patch: Partial<Prefs>) => {
     const prefs = setPrefs(patch)
-    if (patch.launchAtLogin !== undefined && app.isPackaged) {
-      try {
-        app.setLoginItemSettings({ openAtLogin: patch.launchAtLogin })
-      } catch {
-        /* ignore: not permitted in dev / sandboxed runs */
-      }
-    }
+    if (patch.launchAtLogin !== undefined) applyLaunchAtLogin(patch.launchAtLogin)
     if (patch.staySignedIn === true) google.persistIfPossible()
     if (patch.staySignedIn === false) google.forgetPersisted()
     if (patch.dockIcon !== undefined) applyDockMode()

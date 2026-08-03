@@ -1319,8 +1319,19 @@ function fillPrefs(p: Prefs): void {
   updateAppearancePreview()
 }
 
+// The Microsoft Store build can't set its own startup entry - that's the MSIX
+// `windows.startupTask` extension, which only the user can toggle from
+// Settings > Apps > Startup. Hide the checkbox rather than show one that does
+// nothing. See applyLaunchAtLogin in src/main/platform.ts.
+async function hideStoreManagedControls(): Promise<void> {
+  if (!(await q.isWindowsStore())) return
+  const row = login.closest('label')
+  if (row) row.hidden = true
+}
+
 void (async () => {
   fillPrefs(await q.getPrefs())
+  await hideStoreManagedControls()
   hasCustomSound = !!(await q.getCustomSound())
   renderLicense(await q.licenseStatus())
   await initCustom()

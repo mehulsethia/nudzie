@@ -33,6 +33,10 @@ Press **⌘⇧D** (or use the tray) to trigger a test reminder immediately.
 `dist/Nudzie-<version>.appx` (`.appx` and `.msix` are the same container format;
 Partner Center accepts the `.appx` upload).
 
+The Store package is opt-in and isolated: `appx` is not in `win.target`, so
+`npm run dist:win` builds only the NSIS installer. Only `build:windows` (and the
+CI job that calls it) passes `--win appx`.
+
 **It must run on a real Windows machine or VM** — the packaging step shells out
 to `makeappx.exe`. On macOS it fails with `spawn prlctl ENOENT`, which is
 electron-builder looking for a Parallels Windows VM. In CI the `msix` job in

@@ -66,12 +66,13 @@ win:
   # Stable filename so the site can link .../releases/latest/download/Nudzie-Setup.exe
   artifactName: ${productName}-Setup.${ext}
   # Single x64 installer — runs natively on x64 and via emulation on ARM Windows.
-  # appx is the Microsoft Store package; it is built by the same x64 pass but
-  # only on a real Windows host (it shells out to makeappx.exe).
+  # appx is DELIBERATELY NOT LISTED here. The Store package is opt-in: only
+  # `npm run build:windows` (and the `msix` CI job that calls it) asks for it,
+  # via an explicit `--win appx` argument. Adding it to this list would make a
+  # bare `electron-builder --win` build the Store package too — which fails on
+  # any non-Windows host and could reach the auto-update feed by accident.
   target:
     - target: nsis
-      arch: [x64]
-    - target: appx
       arch: [x64]
 
 nsis:
@@ -96,6 +97,12 @@ appx:
   displayName: Nudzie
   # Nudzie brand indigo — the tile background Windows composites the logo over.
   backgroundColor: "#6B5FF0"
+  # Adds the `windows.startupTask` manifest extension. Without it "launch at
+  # login" is impossible in MSIX: app.setLoginItemSettings is a no-op inside the
+  # package, so this is the only mechanism. The user controls it from
+  # Settings > Apps > Startup, which is why the in-app checkbox is hidden in the
+  # Store build (see applyLaunchAtLogin in src/main/platform.ts).
+  addAutoLaunchExtension: true
   # Don't override the win artifactName (Nudzie-Setup.exe) for the Store package.
   artifactName: ${productName}-${version}.${ext}
 
