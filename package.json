@@ -9,11 +9,13 @@
   "scripts": {
     "prepare-assets": "node scripts/prepare-assets.cjs",
     "gen:icons": "node scripts/generate-tray-icon.cjs && node scripts/generate-app-icon.cjs",
+    "gen:appx-assets": "node scripts/generate-appx-assets.cjs",
     "dev": "npm run gen:icons && electron-vite dev",
     "build": "npm run gen:icons && electron-vite build",
     "preview": "electron-vite preview",
     "dist:mac": "npm run build && electron-builder --mac",
-    "dist:win": "npm run build && electron-builder --win"
+    "dist:win": "npm run build && npm run gen:appx-assets && electron-builder --win",
+    "build:windows": "npm run build && npm run gen:appx-assets && electron-builder --win appx --x64 --publish never"
   },
   "devDependencies": {
     "@electron/notarize": "^3.1.1",

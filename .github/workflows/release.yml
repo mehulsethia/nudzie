@@ -164,3 +164,47 @@ jobs:
       - name: Audit packaged mac artifacts
         if: matrix.platform == 'mac'
         run: node scripts/audit-mac-artifacts.cjs
+
+  # Microsoft Store package. Deliberately SEPARATE from the `build` job above:
+  # it never publishes to nudzie-releases and never touches the auto-update feed.
+  # The .appx (MSIX) is uploaded as a workflow artifact only — Microsoft signs it
+  # server-side when it's submitted through Partner Center, so there is nothing
+  # to sign here and nothing to release. Download it and upload it by hand.
+  msix:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Write Google OAuth credentials (if provided)
+        shell: bash
+        env:
+          GOOGLE_OAUTH_JSON: ${{ secrets.GOOGLE_OAUTH_JSON }}
+        run: |
+          if [ -n "$GOOGLE_OAUTH_JSON" ]; then
+            printf '%s' "$GOOGLE_OAUTH_JSON" > oauth-credentials.json
+            echo "Wrote oauth-credentials.json"
+          else
+            echo "No GOOGLE_OAUTH_JSON secret set; building without bundled Google creds."
+          fi
+
+      # `--publish never` is load-bearing: without it a tag push would push the
+      # Store package into the public releases repo alongside the installers.
+      - name: Build unsigned MSIX
+        run: npm run build:windows
+
+      - name: Upload MSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nudzie-msix
+          path: dist/*.appx
+          if-no-files-found: error

@@ -66,14 +66,38 @@ win:
   # Stable filename so the site can link .../releases/latest/download/Nudzie-Setup.exe
   artifactName: ${productName}-Setup.${ext}
   # Single x64 installer — runs natively on x64 and via emulation on ARM Windows.
+  # appx is the Microsoft Store package; it is built by the same x64 pass but
+  # only on a real Windows host (it shells out to makeappx.exe).
   target:
     - target: nsis
+      arch: [x64]
+    - target: appx
       arch: [x64]
 
 nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
+
+# Microsoft Store (MSIX) package. Identity values come from Partner Center —
+# they must match the reserved app identity exactly or the upload is rejected.
+#   Package Family Name: MehulSethia.Nudzie_sj9jbtkexfsya
+#   Package SID: S-1-15-2-2408979726-3252515840-841101041-1938713983-374251602-264041479-3064754329
+# The package is produced UNSIGNED on purpose: Microsoft re-signs it server-side
+# with the Store certificate on submission, so signing it locally is pointless
+# (and a self-signed one would be rejected). electron-builder logs
+# "AppX is not signed / Windows Store only build" — that is the expected path.
+# Tile artwork lives in build/appx (fixed location, see scripts/generate-appx-assets.cjs).
+appx:
+  identityName: MehulSethia.Nudzie
+  publisher: CN=6DC7C83A-BDEA-426F-B6FD-34DC5E3F7DF3
+  publisherDisplayName: Mehul Sethia
+  applicationId: Nudzie
+  displayName: Nudzie
+  # Nudzie brand indigo — the tile background Windows composites the logo over.
+  backgroundColor: "#6B5FF0"
+  # Don't override the win artifactName (Nudzie-Setup.exe) for the Store package.
+  artifactName: ${productName}-${version}.${ext}
 
 dmg:
   # Versioned on purpose. A bare "Nudzie" volume name makes `hdiutil create`

@@ -27,6 +27,30 @@ You'll get:
 
 Press **⌘⇧D** (or use the tray) to trigger a test reminder immediately.
 
+## Windows Store (MSIX) build
+
+`npm run build:windows` produces the unsigned Microsoft Store package at
+`dist/Nudzie-<version>.appx` (`.appx` and `.msix` are the same container format;
+Partner Center accepts the `.appx` upload).
+
+**It must run on a real Windows machine or VM** — the packaging step shells out
+to `makeappx.exe`. On macOS it fails with `spawn prlctl ENOENT`, which is
+electron-builder looking for a Parallels Windows VM. In CI the `msix` job in
+`.github/workflows/release.yml` builds it on `windows-latest` and uploads it as
+the `nudzie-msix` workflow artifact.
+
+Nothing here is signed and nothing is published: Microsoft re-signs the package
+server-side on submission, so the build intentionally stops at the `.appx`, which
+you then upload to Partner Center by hand. Identity values live in the `appx:`
+block of `electron-builder.yml` and must match the reserved Partner Center
+identity exactly.
+
+Store tile artwork is generated from the app icon by `npm run gen:appx-assets`
+into `build/appx/` (gitignored, like the other generated icons). That folder name
+is fixed by electron-builder — it reads user tile assets only from
+`<buildResources>/appx`, and silently substitutes its own sample artwork for any
+logo that's missing.
+
 ## Character art
 
 The default "Buddy" sprites are placeholders, and Buddy's face is also the
