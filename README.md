@@ -49,6 +49,10 @@ you then upload to Partner Center by hand. Identity values live in the `appx:`
 block of `electron-builder.yml` and must match the reserved Partner Center
 identity exactly.
 
+Before the first Store submission the package must be built, installed and
+checked on a real Windows machine — see **[WINDOWS_TESTING.md](WINDOWS_TESTING.md)**
+for the full build → sign → sideload → verify → submit walkthrough.
+
 Store tile artwork is generated from the app icon by `npm run gen:appx-assets`
 into `build/appx/` (gitignored, like the other generated icons). That folder name
 is fixed by electron-builder — it reads user tile assets only from

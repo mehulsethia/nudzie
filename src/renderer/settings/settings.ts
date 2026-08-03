@@ -1323,10 +1323,17 @@ function fillPrefs(p: Prefs): void {
 // `windows.startupTask` extension, which only the user can toggle from
 // Settings > Apps > Startup. Hide the checkbox rather than show one that does
 // nothing. See applyLaunchAtLogin in src/main/platform.ts.
+// Failing open (checkbox visible) is the right call: this runs early in the init
+// chain below, and a cosmetic tweak must never be able to abort the rest of it
+// and leave the settings window half-rendered.
 async function hideStoreManagedControls(): Promise<void> {
-  if (!(await q.isWindowsStore())) return
-  const row = login.closest('label')
-  if (row) row.hidden = true
+  try {
+    if (!(await q.isWindowsStore())) return
+    const row = login.closest('label')
+    if (row) row.hidden = true
+  } catch {
+    /* older main process without the app:isWindowsStore handler */
+  }
 }
 
 void (async () => {
