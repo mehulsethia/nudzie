@@ -66,13 +66,14 @@ win:
   # Stable filename so the site can link .../releases/latest/download/Nudzie-Setup.exe
   artifactName: ${productName}-Setup.${ext}
   # Single x64 installer — runs natively on x64 and via emulation on ARM Windows.
-  # appx is DELIBERATELY NOT LISTED here. The Store package is opt-in: only
-  # `npm run build:windows` (and the `msix` CI job that calls it) asks for it,
-  # via an explicit `--win appx` argument. Adding it to this list would make a
-  # bare `electron-builder --win` build the Store package too — which fails on
-  # any non-Windows host and could reach the auto-update feed by accident.
+  # appx (the Microsoft Store package) is listed alongside it, so a bare
+  # `electron-builder --win` builds both. That only works on a real Windows
+  # host: the appx target shells out to makeappx.exe and dies with
+  # `spawn prlctl ENOENT` on macOS/Linux.
   target:
     - target: nsis
+      arch: [x64]
+    - target: appx
       arch: [x64]
 
 nsis:
