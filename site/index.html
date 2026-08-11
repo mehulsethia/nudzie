@@ -466,20 +466,20 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
       <a href="#pricing">Pricing</a>
       <a href="/discount">Save 50%</a>
       <a href="#faq">FAQ</a>
-      <a class="btn primary nav-cta" href="https://github.com/mehulsethia/nudzie-releases/releases/latest/download/Nudzie.dmg" id="navMacDl">Download for macOS</a>
+      <a class="btn primary nav-cta" href="#get">Download</a>
       <button class="theme-btn" id="themeBtn" title="Toggle theme" aria-label="Toggle light or dark theme">◐</button>
     </div>
   </div>
 </nav>
 
 <a id="top"></a>
-<header class="section hero wrap">
+<header class="section hero wrap" id="get">
   <div class="hero-grid">
     <div>
       <h1>Gentle nudges,<br>right when you <span class="hl">need them</span>.</h1>
       <p class="lede"><b>Nudzie</b> is a little <b>pixel buddy</b> that lives in the corner of your screen and pops out of a speech bubble to nudge you with a friendly reminder for meetings, breaks, water, habits, or anything you set. <b>Accept or snooze</b>, and off they walk.</p>
       <div class="cta-row">
-        <a class="btn primary" href="https://github.com/mehulsethia/nudzie-releases/releases/latest/download/Nudzie.dmg">⬇ Download for macOS</a> <a class="btn" href="https://apps.microsoft.com/detail/9N2DH6TMKTFB">⊞ Get it from Microsoft Store</a>
+        <a class="btn primary" href="https://github.com/mehulsethia/nudzie-releases/releases/latest/download/Nudzie.dmg">⬇ Download for macOS</a> <a class="btn" href="https://apps.microsoft.com/detail/9N2DH6TMKTFB">⬇ Download for Windows</a>
       </div>
       <p class="cta-sub">Free · macOS &amp; Windows · No account needed · <a class="see-link" href="#build">see it move ↓</a></p>
     </div>
@@ -682,10 +682,10 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
     <h2>Why you'll like it</h2>
   </div>
   <div class="why">
-    <div class="card"><span class="ic">🪟</span><h3>Lives in your corner</h3><p>Floats above every app, then walks off. It never blocks a click - your menu bar is the only footprint.</p></div>
+    <div class="card"><span class="ic">🪟</span><h3>Lives in your corner</h3><p>Floats above every app, then walks off. It never blocks a click - your menu bar or system tray is the only footprint.</p></div>
     <div class="card"><span class="ic">📅</span><h3>Calendar + interval</h3><p>Meetings from Google, iCloud, or any .ics link. Plus your own timers for water, breaks, and standups.</p></div>
     <div class="card"><span class="ic">🎨</span><h3>Made yours</h3><p>Your character, your words, your sound. Bring your own pixel art - the background gets removed right on your device.</p></div>
-    <div class="card"><span class="ic">🔕</span><h3>Light &amp; quiet</h3><p>No pop-up spam, no dock bounce. Just the occasional buddy, right when it matters.</p></div>
+    <div class="card"><span class="ic">🔕</span><h3>Light &amp; quiet</h3><p>No pop-up spam, no bouncing icons. Just the occasional buddy, right when it matters.</p></div>
   </div>
 </section>
 
@@ -762,8 +762,8 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
     <details><summary>It's too expensive. Can I get a discount?</summary><p>Yes! Post about Nudzie, tag <b>@mehul.sethia</b>, <b>@nudzie.app</b> and add <b>#nudzie</b>. Hit 2,000 views and we'll refund you. <a href="/discount">See how it works →</a></p></details>
     <details><summary>Why does Nudzie ask for Google Calendar access?</summary><p>Nudzie reads your primary Google Calendar only to find upcoming events and show reminder nudges before meetings. Access is read-only, processed on your device, and Nudzie never edits calendar events or sends calendar data to a server.</p></details>
     <details><summary>What about my privacy?</summary><p>Reminder and calendar data stays on your device. No telemetry or analytics. Calendar data stays in memory; only an encrypted sign-in token can be saved, and only with your permission. Pro purchases are handled by Dodo Payments.</p></details>
-    <details><summary>Which platforms?</summary><p>macOS (Apple Silicon &amp; Intel) and Windows 10/11. On Mac the same buddy runs natively on both Apple Silicon and Intel. On Windows, install it from the Microsoft Store.</p></details>
-    <details><summary>How do I uninstall it?</summary><p>Quit from the menu bar and drag the app to the Trash. Reminder and calendar data is local to your computer. If you use Pro, deactivate your license before uninstalling when possible.</p></details>
+    <details><summary>Which platforms?</summary><p>macOS (Apple Silicon &amp; Intel) and Windows 10/11 — the same buddy runs natively on Apple Silicon, Intel, and Windows.</p></details>
+    <details><summary>How do I uninstall it?</summary><p>On Mac, quit from the menu bar and drag the app to the Trash. On Windows, quit from the system tray and uninstall it the usual way from Settings → Apps. Reminder and calendar data is local to your computer. If you use Pro, deactivate your license before uninstalling when possible.</p></details>
     <details><summary>How can I suggest some ideas and improvements?</summary><p>You can suggest some ideas and improvements by contacting us by email at <a href="mailto:mehul@senseibles.com?subject=Nudzie%20idea">mehul@senseibles.com</a>.</p></details>
   </div>
 </section>
@@ -1115,19 +1115,5 @@ footer.wrap{border-top:3px solid var(--border);margin-top:40px;padding:80px 24px
 })();
 </script>
 
-<!-- Point the nav download button at the right platform. Progressive
-     enhancement: the markup ships with the macOS link, so a visitor with JS
-     disabled still gets a working download. The hero and pricing sections
-     always show BOTH platforms, so nothing is hidden either way. -->
-<script>
-(function(){
-  var isWin = /Windows NT/i.test(navigator.userAgent);
-  if (!isWin) return;
-  var a = document.getElementById('navMacDl');
-  if (!a) return;
-  a.href = 'https://apps.microsoft.com/detail/9N2DH6TMKTFB';
-  a.textContent = 'Get it on Windows';
-})();
-</script>
 
 </body></html>
