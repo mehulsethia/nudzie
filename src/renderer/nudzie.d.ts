@@ -119,7 +119,7 @@ declare global {
     upcoming: () => Promise<UpcomingEvent[]>
     openExternal: (url: string) => Promise<void>
     appVersion: () => Promise<string>
-    isWindowsStore: () => Promise<boolean>
+    platform: () => Promise<{ isWindows: boolean; isWindowsStore: boolean }>
     testReminder: () => Promise<boolean>
     remindNow: () => Promise<boolean>
     // Scheduled reminders

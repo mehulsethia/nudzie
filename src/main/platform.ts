@@ -18,7 +18,9 @@ export function setTrayAvailable(available: boolean): void {
  * differs from the NSIS build in two ways it must respect (see
  * applyLaunchAtLogin below and initAutoUpdate in updater.ts).
  */
-export const isWindowsStore = process.platform === 'win32' && process.windowsStore === true
+export const isWindows = process.platform === 'win32'
+
+export const isWindowsStore = isWindows && process.windowsStore === true
 
 /**
  * Applies the "launch at login" preference. Only meaningful once packaged.

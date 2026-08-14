@@ -25,7 +25,8 @@ You'll get:
 
 …all routed through the same **corner-walk character overlay** with accept/snooze.
 
-Press **⌘⇧D** (or use the tray) to trigger a test reminder immediately.
+Use the tray menu (or the button in Settings) to trigger a test reminder
+immediately.
 
 ## Windows Store (MSIX) build
 

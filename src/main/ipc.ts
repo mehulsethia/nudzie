@@ -18,7 +18,13 @@ import * as google from './calendar/google'
 import * as calendar from './calendar'
 import * as license from './license'
 import { overlayDone } from './windows/overlay'
-import { applyDockMode, applyAppIcon, applyLaunchAtLogin, isWindowsStore } from './platform'
+import {
+  applyDockMode,
+  applyAppIcon,
+  applyLaunchAtLogin,
+  isWindows,
+  isWindowsStore
+} from './platform'
 import { refreshTrayIcon } from './tray'
 import { suppressSettingsActivation } from './activation'
 import {
@@ -46,9 +52,10 @@ export function registerIpc(): void {
   // Shown in the sidebar footer so a bug report can name the exact build.
   ipcMain.handle('app:version', () => app.getVersion())
 
-  // Lets the settings UI hide controls the Store sandbox doesn't allow the app
-  // to drive itself (currently just "Launch at login").
-  ipcMain.handle('app:isWindowsStore', () => isWindowsStore)
+  // Lets the settings UI hide controls that don't apply to the running platform:
+  //  - isWindows      → "Show in Dock" is macOS-only (applyDockMode no-ops).
+  //  - isWindowsStore → "Launch at login" is owned by the MSIX startup task.
+  ipcMain.handle('app:platform', () => ({ isWindows, isWindowsStore }))
 
   ipcMain.handle('prefs:get', () => getPrefs())
 

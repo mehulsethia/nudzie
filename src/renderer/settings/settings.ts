@@ -1319,26 +1319,34 @@ function fillPrefs(p: Prefs): void {
   updateAppearancePreview()
 }
 
-// The Microsoft Store build can't set its own startup entry - that's the MSIX
-// `windows.startupTask` extension, which only the user can toggle from
-// Settings > Apps > Startup. Hide the checkbox rather than show one that does
-// nothing. See applyLaunchAtLogin in src/main/platform.ts.
-// Failing open (checkbox visible) is the right call: this runs early in the init
+// Hide settings that can't do anything on the running platform, rather than
+// show a control that silently lies:
+//  - "Show in Dock" is macOS-only; applyDockMode() no-ops elsewhere.
+//  - "Launch at login" in the Microsoft Store build is owned by the MSIX
+//    `windows.startupTask` extension, which only the user can toggle from
+//    Settings > Apps > Startup. See applyLaunchAtLogin in src/main/platform.ts.
+// Failing open (controls visible) is the right call: this runs early in the init
 // chain below, and a cosmetic tweak must never be able to abort the rest of it
 // and leave the settings window half-rendered.
-async function hideStoreManagedControls(): Promise<void> {
+async function hidePlatformControls(): Promise<void> {
   try {
-    if (!(await q.isWindowsStore())) return
-    const row = login.closest('label')
-    if (row) row.hidden = true
+    const { isWindows, isWindowsStore } = await q.platform()
+    if (isWindows) {
+      const row = dockIcon.closest('label')
+      if (row) row.hidden = true
+    }
+    if (isWindowsStore) {
+      const row = login.closest('label')
+      if (row) row.hidden = true
+    }
   } catch {
-    /* older main process without the app:isWindowsStore handler */
+    /* older main process without the app:platform handler */
   }
 }
 
 void (async () => {
   fillPrefs(await q.getPrefs())
-  await hideStoreManagedControls()
+  await hidePlatformControls()
   hasCustomSound = !!(await q.getCustomSound())
   renderLicense(await q.licenseStatus())
   await initCustom()
